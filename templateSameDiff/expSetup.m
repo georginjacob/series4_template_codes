@@ -52,6 +52,7 @@ samplePeriod   = 400;
 delayPeriod    = 200;
 testPeriod     = 5000;
 respPeriod     = 5000;
+delayFixFlag   = 1;
 
 % INFO fields
 infoFields =  {
@@ -67,6 +68,7 @@ infoFields =  {
     '''delayPeriod'',',      'delayPeriod'
     '''testPeriod'',',       'testPeriod'
     '''respPeriod'',',       'respPeriod'
+    '''delayFixFlag'',',     'delayFixFlag'
     };
 
 % TRIAL info

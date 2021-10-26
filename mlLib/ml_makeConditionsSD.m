@@ -39,13 +39,13 @@ calTimingFile ='calTiming';
 
 % TASK objects - Static
 taskObj01Ptd    = 'sqr([3.0 2.5], [1 1 1], 1,  0,  19)';
-taskObj02Hold   = 'crc(4, [0 1 0], 1, 20, 0)';
-taskObj03Fix    = 'sqr([0.6 0.6], [0.5 0.5 0], 1, 0, 0)';
-taskObj04Calib  = 'crc(1, [0.5 0.5 0.5], 1, 0, 0)';
+taskObj02Hold   = 'crc(4, [0 0.33 0], 1, 20, 0)';
+taskObj03Fix    = 'crc(0.2, [0.5 0.5 0], 1, 0, 0)';
+taskObj04Calib  = 'crc(0.5, [0.5 0.5 0.5], 1, 0, 0)';
 taskObj05Corr   = 'snd(.\aud\correct)';
 taskObj06Incorr = 'snd(.\aud\incorrect)';
-taskObj07Same   = 'crc(4, [0 1 0], 1, 20, 10)';
-taskObj08Diff   = 'crc(4, [0 1 0], 1, 20, -10)';
+taskObj07Same   = 'crc(4, [0 0.33 0], 1, 20, 10)';
+taskObj08Diff   = 'crc(4, [0 0.33 0], 1, 20, -10)';
 
 % WRITE the first line of the conditions file (describes each tab delimited column)
 fprintf(conditionsFile, ['Condition\t', 'Info\t',         'Frequency\t',  'Block\t',...

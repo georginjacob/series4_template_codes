@@ -95,9 +95,10 @@ bhv.fixInit          = 605;
 bhv.fixNotInit       = 606;
 bhv.fixMaint         = 607;
 bhv.fixNotMaint      = 608;
-bhv.respCorr         = 609;
-bhv.respWrong        = 610;
-bhv.respNil          = 611;
+bhv.respGiven        = 609;
+bhv.respCorr         = 610;
+bhv.respWrong        = 611;
+bhv.respNil          = 612;
 
 % REWARD
 rew.juice            = 700;

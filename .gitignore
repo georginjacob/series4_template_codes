@@ -3,6 +3,11 @@ templateFixation/data/
 templateSameDiff/data/
 templateSearch/data/
 
+# IGNORE CONFIG FILES
+templateFixation/*.mat
+templateSameDiff/sdConditions_cfg2.mat
+templateSearch/*.mat
+
 # IGNORING TEMP FILES
 *.asv
 
@@ -10,6 +15,9 @@ templateSearch/data/
 # Ignoring files in the main folder
 *.ffs_db
 
+
+# test
+templateSameDiff/mlLib/ml_loadEvents.m
 
 
 

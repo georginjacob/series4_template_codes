@@ -1,4 +1,4 @@
-% SAME-DIFF TRIAL for MonkeyLogic - Vision Lab, IISc
+% SAME-DIFFERENT TRIAL in MonkeyLogic - Vision Lab, IISc
 %{
 Presents a sample and test image at the center of the screen but separated temporally.
 Provides two touch button on the right side (from subjects' POV) as responses:
@@ -20,6 +20,8 @@ VERSION HISTORY
 - 14-Sep-2020 - Thomas  - General changes to code structure to improve legibilty
 - 14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
 - 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
+- 26-Oct-2021 - Thomas  - Included tRespOff and eventmarker to indicated response given by
+                          monkey. Also updated handling testPeriod < respPeriod
 %}
 % HEADER start ---------------------------------------------------------------------------
 
@@ -34,7 +36,7 @@ showcursor(false);
 trialNum = TrialRecord.CurrentTrialNumber;
 
 % ITI (set to 0 to measure true ITI in ML Dashboard)
-set_iti(200);
+set_iti(500);
 
 % EDITABLE variables that can be changed during the task
 editable(...
@@ -61,6 +63,7 @@ holdRadius       = TrialData.TaskObject.Attribute{1, 2}{1, 2};
 holdRadiusBuffer = 2;
 samplePeriod     = Info.samplePeriod;
 delayPeriod      = Info.delayPeriod;
+delayFixFlag     = Info.delayFixFlag;
 testPeriod       = Info.testPeriod;
 respPeriod       = Info.respPeriod;
 reward           = ml_rewardVol2Time(rewardVol);
@@ -106,6 +109,7 @@ tFixMaintCueOff = NaN;
 tTestRespOn     = NaN;
 tBhvResp        = NaN;
 tTestOff        = NaN;
+tRespOff        = NaN; 
 tAllOff         = NaN;
 juiceConsumed   = NaN;
 
@@ -136,11 +140,11 @@ while outcome < 0
     
     if(sum(ontarget) == 0)
         % Error if there's no touch anywhere
-        event   = [pic.holdOff bhv.holdNotInit];
+        event   = [bhv.holdNotInit pic.holdOff];
         outcome = err.holdNil; break
     elseif ontarget(2) == 1
         % Error if any touch outside hold button
-        event   = [pic.holdOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.holdOff];
         outcome = err.holdOutside; break
     else
         % Correctly initiated hold
@@ -159,15 +163,15 @@ while outcome < 0
     
     if ontarget(1) == 0
         % Error if monkey has released hold
-        event   = [pic.holdOff pic.fixOff bhv.holdNotMaint];
+        event   = [bhv.holdNotMaint pic.holdOff pic.fixOff];
         outcome = err.holdBreak; break
     elseif ontarget(2) == 1
         % Error if monkey touched outside
-        event   = [pic.holdOff pic.fixOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.holdOff pic.fixOff];
         outcome = err.holdOutside; break
     elseif ontarget(3) == 0
         % Error if monkey never looked inside fixRadius
-        event   = [pic.holdOff pic.fixOff bhv.fixNotInit ];
+        event   = [bhv.fixNotInit pic.holdOff pic.fixOff];
         outcome = err.fixNil; break
     else
         % Correctly acquired fixation and held hold
@@ -183,15 +187,15 @@ while outcome < 0
     
     if ontarget(1) == 0
         % Error if monkey has released hold 
-        event   = [pic.holdOff pic.fixOff bhv.holdNotMaint]; 
+        event   = [bhv.holdNotMaint pic.holdOff pic.fixOff]; 
         outcome = err.holdBreak; break
     elseif ontarget(2) == 1
         % Error if monkey touched outside
-        event   = [pic.holdOff pic.fixOff bhv.holdOutside]; 
+        event   = [bhv.holdOutside pic.holdOff pic.fixOff]; 
         outcome = err.holdOutside; break
     elseif ontarget(3) == 0
         % Error if monkey went outside fixRadius
-        event   = [pic.holdOff pic.sampleOff bhv.fixNotMaint]; 
+        event   = [bhv.fixNotMaint pic.holdOff pic.sampleOff]; 
         outcome = err.fixBreak; break
     else
         % Correctly held fixation & hold
@@ -211,69 +215,93 @@ while outcome < 0
     
     if ontarget(1) == 0
         % Error if monkey has released hold
-        event   = [pic.holdOff pic.sampleOff bhv.holdNotMaint];
+        event   = [bhv.holdNotMaint pic.holdOff pic.sampleOff];
         outcome = err.holdBreak; break
     elseif ontarget(2) == 1
         % Error if monkey touched outside
-        event   = [pic.holdOff pic.sampleOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.holdOff pic.sampleOff];
         outcome = err.holdOutside; break
     elseif ontarget(3) == 0
         % Error if monkey went outside fixRadius
-        event   = [pic.holdOff pic.sampleOff bhv.fixNotMaint];
+        event   = [bhv.fixNotMaint pic.holdOff pic.sampleOff];
         outcome = err.fixBreak; break
     else
         % Correctly held fixation & hold
         eventmarker([bhv.holdMaint bhv.fixMaint]);
     end
     
-    % REMOVE sample image and PRESENT fixation cue
-    tSampleOff     = toggleobject([sample fix ptd], 'eventmarker', [pic.sampleOff pic.fixOn]);
-    tFixMaintCueOn = tSampleOff;
-    
-    % CHECK hold and fixation in DELAY period
-    ontarget = eyejoytrack(...
-        'releasetarget', hold, holdRadius,...
-        '~touchtarget',  hold, holdRadius + holdRadiusBuffer,...
-        'holdfix',       fix,  taskFixRadius,...
-        delayPeriod);
-    
-    if ontarget(1) == 0
-        % Error if monkey has released hold
-        event   = [pic.holdOff pic.fixOff bhv.holdNotMaint];
-        outcome = err.holdBreak; break
-    elseif ontarget(2) == 1
-        % Error if monkey touched outside
-        event   = [pic.holdOff pic.fixOff bhv.holdOutside];
-        outcome = err.holdOutside; break
-    elseif ontarget(3) == 0
-        % Error if monkey went outside fixRadius
-        event   = [pic.holdOff pic.fixOff bhv.fixNotMaint];
-        outcome = err.fixBreak; break
+    % HANDLE sample removal and test presetation considering delayPeriod duration
+    if delayPeriod == 0
+        % REMOVE sample and PRESENT test and response buttons
+        tSampleOff = toggleobject([sample hold test same diff ptd], 'eventmarker',...
+            [pic.sampleOff pic.holdOff pic.choiceOn pic.testOn]);
+        tTestRespOn  = tSampleOff;
     else
-        % Correctly held fixation & hold
-        eventmarker([bhv.holdMaint bhv.fixMaint]);
+        % REPOSITION fixation cue offscreen if not needed
+        if delayFixFlag == 0
+            reposition_object(fix, [200 200]);
+        end
+        
+        % REMOVE sample image and PRESENT fixation cue
+        tSampleOff     = toggleobject([sample fix ptd], 'eventmarker', [pic.sampleOff pic.fixOn]);
+        tFixMaintCueOn = tSampleOff;
+        
+        % CHECK hold and fixation in DELAY period
+        ontarget = eyejoytrack(...
+            'releasetarget', hold,    holdRadius,...
+            '~touchtarget',  hold,    holdRadius + holdRadiusBuffer,...
+            'holdfix',       sample,  taskFixRadius,...
+            delayPeriod);
+        
+        if ontarget(1) == 0
+            % Error if monkey has released hold
+            event   = [bhv.holdNotMaint pic.holdOff pic.fixOff];
+            outcome = err.holdBreak; break
+        elseif ontarget(2) == 1
+            % Error if monkey touched outside
+            event   = [bhv.holdOutside pic.holdOff pic.fixOff];
+            outcome = err.holdOutside; break
+        elseif ontarget(3) == 0
+            % Error if monkey went outside fixRadius
+            event   = [bhv.fixNotMaint pic.holdOff pic.fixOff];
+            outcome = err.fixBreak; break
+        else
+            % Correctly held fixation & hold
+            eventmarker([bhv.holdMaint bhv.fixMaint]);
+        end
+        
+        % REMOVE fixation cue and PRESENT test and response buttons
+        tFixMaintCueOff = toggleobject([fix hold test same diff ptd], 'eventmarker',...
+            [pic.fixOff pic.holdOff pic.choiceOn pic.testOn]);
+        tTestRespOn     = tFixMaintCueOff;
     end
-    
-    % REMOVE fixation cue and PRESENT test and response buttons
-    tFixMaintCueOff = toggleobject([fix hold test same diff ptd], 'eventmarker',...
-        [pic.fixOff pic.holdOff pic.choiceOn pic.testOn]);
-    tTestRespOn     = tFixMaintCueOff;
-    
+               
     % WAIT for response in TEST ON period
     [chosenResp, ~, tBhvResp] = eyejoytrack(...
         'touchtarget',  respOrder, holdRadius,...
         '~touchtarget', hold,      holdRadius + holdRadiusBuffer,...
         testPeriod);
     
-    % REMOVE test image
-    tTestOff = toggleobject([test ptd],'eventmarker', pic.testOff);
+    % CHECK if response given
+    if sum(chosenResp) > 0
+        eventmarker(bhv.respGiven);
+    end
     
-    % WAIT for response if TEST period < RESP period
-    if testPeriod < respPeriod
+    % HANDLE situations where testPeriod < respPeriod
+    if testPeriod < respPeriod && sum(chosenResp) == 0
+        % REMOVE test image
+        tTestOff = toggleobject([test ptd],'eventmarker', pic.testOff);
+        
+        % WAIT for response if TEST period < RESP period
         [chosenResp, ~, tBhvResp] = eyejoytrack(...
             'touchtarget',  respOrder, holdRadius,...
             '~touchtarget', hold,      holdRadius + holdRadiusBuffer,...
             (respPeriod - testPeriod));
+        
+        % CHECK if response given
+        if sum(chosenResp) > 0
+            eventmarker(bhv.respGiven);
+        end
     end
     
     % RECORD reaction time
@@ -281,37 +309,37 @@ while outcome < 0
     
     if chosenResp(1) == 0 && chosenResp(2) == 0
         % Error if no response from monkey
-        event   = [pic.choiceOff bhv.respNil];
+        event   = [bhv.respNil pic.choiceOff];
         outcome = err.respNil; break
     elseif chosenResp(1) == 0 && chosenResp(2) == 1
         % Error if monkey touched outside
-        event   = [pic.choiceOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.choiceOff];
         outcome = err.holdOutside; break
     elseif Info.expectedResponse == 0
         % Correct response by monkey on ambigous/free-choice trial
-        event   = [pic.choiceOff bhv.respCorr rew.juice];
+        event   = [bhv.respCorr pic.choiceOff rew.juice];
         outcome = err.respCorr; break
     elseif chosenResp(1) == Info.expectedResponse
         % Correct response by monkey
-        event   = [pic.choiceOff bhv.respCorr rew.juice];
+        event   = [bhv.respCorr  pic.choiceOff rew.juice];
         outcome = err.respCorr; break   
     else
         % Wrong response by monkey
-        event   = [pic.choiceOff bhv.respWrong];
+        event   = [bhv.respWrong pic.choiceOff];
         outcome = err.respWrong; break
     end
 end
 
 % SET trial outcome and remove all stimuli
 trialerror(outcome);
-tAllOff = toggleobject(1:10, 'status', 'off', 'eventmarker', event);
-
-% TRIAL end
-eventmarker(trl.stop);
-TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
-
-% TRIAL end ------------------------------------------------------------------------------ 
-% FOOTER start --------------------------------------------------------------------------- 
+if isnan(tTestOff)
+    tAllOff  = toggleobject([test same diff ptd], 'eventmarker', [event(1) pic.testOff event(2:end)]);
+    tTestOff = tAllOff;
+    tRespOff = tAllOff;
+else
+    tAllOff  = toggleobject([same diff ptd], 'eventmarker', event);
+    tRespOff = tAllOff;
+end    
 
 % REWARD monkey if correct response given
 if outcome == err.holdNil
@@ -332,6 +360,19 @@ else
     toggleobject(audWrong);
     idle(badPause);
 end
+
+% TURN photodiode state to off at end of trial
+toggleobject(ptd, 'status', 'off');
+
+% TRIAL end
+eventmarker(trl.stop);
+TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
+
+% SEND check odd lines
+eventmarker(chk.linesOdd);
+
+% TRIAL end ------------------------------------------------------------------------------ 
+% FOOTER start --------------------------------------------------------------------------- 
 
 % ASSIGN trial footer eventmarkers
 cTrial       = trl.trialShift       + TrialRecord.CurrentTrialNumber;
@@ -386,15 +427,17 @@ eventmarker(trl.edtStop);
 eventmarker(trl.footerStop);
 
 % SAVE to TrialRecord.user
-TrialRecord.User.juiceConsumed(trialNum)      = juiceConsumed;
-TrialRecord.User.responseCorrect(trialNum)    = outcome;
+TrialRecord.User.sampleID(trialNum)           = Info.sampleImageID;
+TrialRecord.User.testID(trialNum)             = Info.testImageID;
+TrialRecord.User.trialFlag(trialNum)          = Info.trialFlag;
 TrialRecord.User.expectedResponse(trialNum)   = Info.expectedResponse;
 if exist('chosenResp','var')
     TrialRecord.User.chosenResponse(trialNum) = chosenResp(1);
 else
     TrialRecord.User.chosenResponse(trialNum) = NaN;
 end
-TrialRecord.User.trialFlag(trialNum)          = Info.trialFlag;
+TrialRecord.User.responseCorrect(trialNum)    = outcome;
+TrialRecord.User.juiceConsumed(trialNum)      = juiceConsumed;
 
 % SAVE to Data.UserVars
 bhv_variable(...
@@ -404,10 +447,8 @@ bhv_variable(...
     'tSampleOn',      tSampleOn,      'tSampleOff',      tSampleOff,...
     'tFixMaintCueOn', tFixMaintCueOn, 'tFixMaintCueOff', tFixMaintCueOff,...
     'tTestRespOn',    tTestRespOn,    'tBhvResp',        tBhvResp,...
-    'tTestOff',       tTestOff,       'tAllOff',         tAllOff);
-
-% SEND check odd lines
-eventmarker(chk.linesOdd);
+    'tTestOff',       tTestOff,       'tRespOff',        tRespOff,...
+    'tAllOff',        tAllOff);
 
 % FOOTER end------------------------------------------------------------------------------
 % DASHBOARD (customize as required)-------------------------------------------------------

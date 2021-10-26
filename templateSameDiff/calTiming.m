@@ -126,11 +126,11 @@ while outcome < 0
 
     if(sum(ontarget) == 0)
         % Error if there's no touch anywhere
-        event   = [pic.holdOff bhv.holdNotInit];
+        event   = [bhv.holdNotInit pic.holdOff];
         outcome = err.holdNil; break
     elseif ontarget(2) == 1
         % Error if any touch outside hold button
-        event   = [pic.holdOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.holdOff];
         outcome = err.holdOutside; break
     else
         % Correctly initiated hold
@@ -153,15 +153,15 @@ while outcome < 0
         
         if ontarget(1) == 0
             % Error if monkey has released hold            
-            event   = [pic.holdOff calEvts(locID*2) bhv.holdNotMaint];
+            event   = [bhv.holdNotMaint pic.holdOff calEvts(locID*2)];
             outcome = err.holdBreak; break
         elseif ontarget(2) == 1
             % Error if monkey touched outside
-            event   = [pic.holdOff calEvts(locID*2) bhv.holdOutside]; 
+            event   = [bhv.holdOutside pic.holdOff calEvts(locID*2)]; 
             outcome = err.holdOutside; break
         elseif ontarget(3) == 0
             % Error if monkey never looked inside fixRadius
-            event   = [pic.holdOff calEvts(locID*2) bhv.fixNotInit]; 
+            event   = [bhv.fixNotInit pic.holdOff calEvts(locID*2)]; 
             outcome = err.fixNil; break
         else
             % Correctly acquired fixation and held hold
@@ -177,15 +177,15 @@ while outcome < 0
         
         if ontarget(1) == 0
             % Error if monkey has released hold 
-            event   = [pic.holdOff calEvts(locID*2) bhv.holdNotMaint]; 
+            event   = [bhv.holdNotMaint pic.holdOff calEvts(locID*2)]; 
             outcome = err.holdBreak; break
         elseif ontarget(2) == 1
             % Error if monkey touched outside
-            event   = [pic.holdOff calEvts(locID*2) bhv.holdOutside]; 
+            event   = [bhv.holdOutside pic.holdOff calEvts(locID*2)]; 
             outcome = err.holdOutside; break
         elseif ontarget(3) == 0
             % Error if monkey went outside fixRadius
-            event   = [pic.holdOff calEvts(locID*2) bhv.fixNotMaint]; 
+            event   = [bhv.fixNotMaint pic.holdOff calEvts(locID*2)]; 
             outcome = err.fixBreak; break
         else
             % Correctly held fixation & hold
@@ -198,7 +198,7 @@ while outcome < 0
     
     % TRIAL finished successfully if all stims fixated correctly
     if outcome < 0
-        event   = [pic.holdOff bhv.respCorr rew.juice];
+        event   = [bhv.respCorr pic.holdOff rew.juice];
         outcome = err.respCorr;
     end
 end
@@ -206,13 +206,6 @@ end
 % SET trial outcome and remove all stimuli
 trialerror(outcome);
 tAllOff = toggleobject(1:10, 'status', 'off', 'eventmarker', event);
-
-% TRIAL end
-eventmarker(trl.stop);
-TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
-
-% TRIAL end ------------------------------------------------------------------------------ 
-% FOOTER start --------------------------------------------------------------------------- 
 
 % REWARD monkey if correct response given
 if outcome == err.holdNil
@@ -233,6 +226,20 @@ else
     toggleobject(audWrong);
     idle(badPause);
 end
+
+% TURN photodiode state to off at end of trial
+toggleobject(ptd, 'status', 'off');
+
+% SEND check odd lines
+eventmarker(chk.linesOdd);
+
+% TRIAL end
+eventmarker(trl.stop);
+TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
+
+% TRIAL end ------------------------------------------------------------------------------ 
+% FOOTER start --------------------------------------------------------------------------- 
+
 
 % ASSIGN trial footer eventmarkers
 cTrial       = trl.trialShift       + TrialRecord.CurrentTrialNumber;
@@ -258,10 +265,10 @@ cRewardVol        = trl.edtShift + TrialRecord.Editable.rewardVol*1000;
 % CONVERT calLocs values for sending through trial footer
 cCalLocs = nan(1,numel(calLocs));
 count    = 0;
-for CalLocsR = 1:size(calLocs,1)
-    for CalLocsC =1:size(calLocs,2)
+for calLocsR = 1:size(calLocs,1)
+    for calLocsC =1:size(calLocs,2)
         count = count+1;
-        cCalLocs(count) = trl.picPosShift + calLocs(CalLocsR,CalLocsC)*1000;
+        cCalLocs(count) = trl.picPosShift + calLocs(calLocsR,calLocsC)*1000;
     end
 end
 
@@ -308,9 +315,6 @@ bhv_variable(...
     'tTrialInit',    tTrialInit,    'tFixAcqCueOn',  tFixAcqCueOn,...
     'tFixAcq',       tFixAcq,       'tFixAcqCueOff', tFixAcqCueOff,...
     'tAllOff',       tAllOff);
-
-% SEND check odd lines
-eventmarker(chk.linesOdd);
 
 % FOOTER end------------------------------------------------------------------------------
 % DASHBOARD (customize as required)-------------------------------------------------------

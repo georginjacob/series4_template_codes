@@ -42,7 +42,7 @@ set_iti(500);
 editable(...
     'goodPause',    'badPause',         'taskFixRadius',...
     'calFixRadius', 'calFixInitPeriod', 'calFixHoldPeriod', 'calFixRandFlag',...
-    'rewardVol',    'rewardLine',       'rewardReps',       'rewardRepsGap');
+    'rewardVol');
 goodPause        = 200;
 badPause         = 1000;
 taskFixRadius    = 10;
@@ -51,9 +51,6 @@ calFixInitPeriod = 500;
 calFixHoldPeriod = 200;
 calFixRandFlag   = 1;
 rewardVol        = 0.2;
-rewardLine       = 1;
-rewardReps       = 1;
-rewardRepsGap    = 500;
 
 % PARAMETERS relevant for task timing and hold/fix control
 holdInitPeriod   = Info.holdInitPeriod;
@@ -118,7 +115,10 @@ juiceConsumed   = NaN;
 
 % CHECK and proceed only if screen is not being touched
 while istouching(), end
-outcome = -1;
+outcome      = -1;
+
+% TEMPORARY variable that contains the stims visible to monkey on the screen (except ptd)
+visibleStims = [];
 
 % SEND check even lines
 eventmarker(chk.linesEven);
@@ -131,6 +131,7 @@ TrialRecord.User.TrialStart(trialNum,:) = datevec(now);
 while outcome < 0
     % PRESENT hold button
     tHoldButtonOn = toggleobject([hold ptd], 'eventmarker', pic.holdOn);
+    visibleStims  = hold;
     
     % WAIT for touch in INIT period
     [ontarget, ~, tTrialInit] = eyejoytrack(...
@@ -153,6 +154,7 @@ while outcome < 0
     
     % PRESENT fixation cue
     tFixAcqCueOn = toggleobject([fix ptd], 'eventmarker', pic.fixOn);
+    visibleStims = [hold fix];
     
     % WAIT for fixation and CHECK for hold in HOLD period
     [ontarget, ~, tFixAcq] = eyejoytrack(...
@@ -205,6 +207,7 @@ while outcome < 0
     % REMOVE fixation cue and PRESENT sample image
     tFixAcqCueOff = toggleobject([fix sample ptd], 'eventmarker', [pic.fixOff pic.sampleOn]);
     tSampleOn     = tFixAcqCueOff;
+    visibleStims  = [hold sample];
     
     % CHECK hold and fixation in SAMPLE ON period
     ontarget = eyejoytrack(...
@@ -236,6 +239,7 @@ while outcome < 0
         tSampleOff = toggleobject([sample hold test same diff ptd], 'eventmarker',...
             [pic.sampleOff pic.holdOff pic.choiceOn pic.testOn]);
         tTestRespOn  = tSampleOff;
+        visibleStims = [test same diff];
     else
         % REPOSITION fixation cue offscreen if not needed
         if delayFixFlag == 0
@@ -245,6 +249,7 @@ while outcome < 0
         % REMOVE sample image and PRESENT fixation cue
         tSampleOff     = toggleobject([sample fix ptd], 'eventmarker', [pic.sampleOff pic.fixOn]);
         tFixMaintCueOn = tSampleOff;
+        visibleStims   = [hold fix];
         
         % CHECK hold and fixation in DELAY period
         ontarget = eyejoytrack(...
@@ -274,6 +279,7 @@ while outcome < 0
         tFixMaintCueOff = toggleobject([fix hold test same diff ptd], 'eventmarker',...
             [pic.fixOff pic.holdOff pic.choiceOn pic.testOn]);
         tTestRespOn     = tFixMaintCueOff;
+        visibleStims    = [test same diff];
     end
                
     % WAIT for response in TEST ON period
@@ -290,7 +296,8 @@ while outcome < 0
     % HANDLE situations where testPeriod < respPeriod
     if testPeriod < respPeriod && sum(chosenResp) == 0
         % REMOVE test image
-        tTestOff = toggleobject([test ptd],'eventmarker', pic.testOff);
+        tTestOff     = toggleobject([test ptd],'eventmarker', pic.testOff);
+        visibleStims = [same diff];
         
         % WAIT for response if TEST period < RESP period
         [chosenResp, ~, tBhvResp] = eyejoytrack(...
@@ -330,14 +337,14 @@ while outcome < 0
     end
 end
 
-% SET trial outcome and remove all stimuli
+% SET trial outcome and remove all visible stimuli
 trialerror(outcome);
-if isnan(tTestOff)
-    tAllOff  = toggleobject([test same diff ptd], 'eventmarker', [event(1) pic.testOff event(2:end)]);
+if isnan(tTestOff) && ~isnan(tTestRespOn)
+    tAllOff  = toggleobject([visibleStims ptd], 'eventmarker', [event(1) pic.testOff event(2:end)]);
     tTestOff = tAllOff;
     tRespOff = tAllOff;
 else
-    tAllOff  = toggleobject([same diff ptd], 'eventmarker', event);
+    tAllOff  = toggleobject([visibleStims ptd], 'eventmarker', event);
     tRespOff = tAllOff;
 end    
 
@@ -348,11 +355,7 @@ if outcome == err.holdNil
 elseif outcome == err.respCorr
     % CORRECT response; give reward, audCorr & good pause
     juiceConsumed = TrialRecord.Editable.rewardVol;
-    goodmonkey(reward,...
-        'juiceline',   rewardLine,...
-        'numreward',   rewardReps,...
-        'pausetime',   rewardRepsGap,...
-        'nonblocking', 1);
+    goodmonkey(reward,'juiceline', 1,'numreward', 1,'pausetime', 1, 'nonblocking', 1);
     toggleobject(audCorr);
     idle(goodPause);
 else
@@ -361,8 +364,8 @@ else
     idle(badPause);
 end
 
-% TURN photodiode state to off at end of trial
-toggleobject(ptd, 'status', 'off');
+% TURN photodiode (and all stims) state to off at end of trial
+toggleobject(1:10, 'status', 'off');
 
 % TRIAL end
 eventmarker(trl.stop);

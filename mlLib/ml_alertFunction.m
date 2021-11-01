@@ -13,7 +13,7 @@ function alert_function(hook,MLConfig,TrialRecord)
 % To make this alert_function executed, turn on the alert button on the
 % task panel of the main menu.
 %
-% NOTE - save this file as alert_function eith in exp folder.
+% % NOTE - save this file as alert_function eith in exp folder.
 %
 % VERSION HISTORY
 % - 14-Oct-2020 - Thomas  - First version
@@ -103,7 +103,7 @@ switch hook
             end
         end
         
-        if TrialRecord.User.mlPcFlag
+        if TrialRecord.User.mlPcFlag && exist('iScan','var')
             configureCallback(iScan, "off");
             delete(iScan)
             clear iScan
@@ -112,7 +112,13 @@ switch hook
         
     case 'task_aborted'
         % In case that the task stops with an error. The 'task_end' hook will follow.
-        
+                
+        if TrialRecord.User.mlPcFlag && exist('iScan','var')
+            configureCallback(iScan, "off");
+            delete(iScan)
+            clear iScan
+            disp('[UPDATE] - cleared serialport session');
+        end
     case 'task_paused'
         % When the task is paused with ESC during the task
         

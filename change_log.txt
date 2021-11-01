@@ -1,6 +1,17 @@
 changeLog for series4 MonkeyLogic template codes - VisionLab, IISc
 maintained by - Georgin/Thomas
 
+01-11-2021 VERSION 6.0 - thomas/georgin
+	templateSD
+	- sdTiming.m updated to deal with delayPeriod == 0 and also with testOff ~= respPeriod. A new variable visibleStims is used to keep track of stimuli visible on screen (except ptd).
+	  This is useful to turn off only stimuli visible on outcome and to keep a separate ptd off toggleobject at end of trials. Reworked trial end to happen after reward and associated pauses.
+	- calTIming.m calib point is now 0.5 dva radius and timing/variables updated to be similar to sdTiming.m
+	
+	mlLib
+	- ml_makeConditionsSD.m fix size is now 0.1 dva radius and full yellow circle. Hold and response buttons color is now dark green (rgb = [0 0.33 0])
+	- ml_alertFunction.m now clears serialport object iScan upon any error in timing file. No need to restart MATLAB each time.
+	- ml_loadEvents.m added a value for NaN (exp.nan = 999) and a value for response made in task (bhv.respGiven)
+
 -----------------------------------------
 29-08-2021 VERSION 5.3 - thomas/georgin
 	templateSD/Fix/Search

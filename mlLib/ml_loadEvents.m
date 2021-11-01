@@ -104,6 +104,7 @@ bhv.respNil          = 612;
 rew.juice            = 700;
 
 % EXP HEADER - sent before first trial in alert_function.m
+exp.nan              =  999;
 exp.headerStart      = 1000;
 exp.headerStop       = 1001;
 exp.nameStart        = 1002;

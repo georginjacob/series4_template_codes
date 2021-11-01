@@ -36,7 +36,7 @@ set_iti(200);
 editable(...
     'goodPause',    'badPause',         'taskFixRadius',...
     'calFixRadius', 'calFixInitPeriod', 'calFixHoldPeriod', 'calFixRandFlag',...
-    'rewardVol',    'rewardLine',       'rewardReps',       'rewardRepsGap');
+    'rewardVol');
 goodPause        = 200; 
 badPause         = 1000; 
 taskFixRadius    = 10;
@@ -45,9 +45,6 @@ calFixInitPeriod = 500;
 calFixHoldPeriod = 200; 
 calFixRandFlag   = 1;
 rewardVol        = 0.2;
-rewardLine       = 1;
-rewardReps       = 1;
-rewardRepsGap    = 500;
 
 % PARAMETERS relevant for task timing and hold/fix control
 holdInitPeriod   = Info.holdInitPeriod;
@@ -103,6 +100,9 @@ juiceConsumed = NaN;
 while istouching(), end
 outcome = -1;
 
+% TEMPORARY variable that contains the stims visible to monkey on the screen (except ptd)
+visibleStims = [];
+
 % SEND check even lines
 eventmarker(chk.linesEven);
 
@@ -117,6 +117,7 @@ while outcome < 0
     
     % PRESENT hold button
     tHoldButtonOn = toggleobject([hold ptd], 'eventmarker', pic.holdOn);
+    visibleStims  = hold;
     
     % WAIT for touch in INIT period
     [ontarget, ~, tTrialInit] = eyejoytrack(...
@@ -143,7 +144,8 @@ while outcome < 0
         
         % PRESENT fixation cue
         tFixAcqCueOn(locID) = toggleobject([calib ptd], 'eventmarker', calEvts(locID*2-1));
-    
+        visibleStims        = [hold calib];
+        
         % WAIT for fixation and check for hold maintenance
         [ontarget, ~, tFixAcq(locID)] = eyejoytrack(...
             'releasetarget',hold,  holdRadius,...
@@ -194,6 +196,7 @@ while outcome < 0
         
         % REMOVE the calibration image image off
         tFixAcqCueOff(locID) = toggleobject(calib, 'eventmarker', calEvts(locID*2));
+        visibleStims         = hold;
     end
     
     % TRIAL finished successfully if all stims fixated correctly
@@ -203,9 +206,9 @@ while outcome < 0
     end
 end
 
-% SET trial outcome and remove all stimuli
+% SET trial outcome and remove all visible stimuli
 trialerror(outcome);
-tAllOff = toggleobject(1:10, 'status', 'off', 'eventmarker', event);
+tAllOff = toggleobject([visibleStims ptd], 'eventmarker', event);
 
 % REWARD monkey if correct response given
 if outcome == err.holdNil
@@ -214,11 +217,7 @@ if outcome == err.holdNil
 elseif outcome == err.respCorr
     % CORRECT response; give reward, audCorr & good pause
     juiceConsumed = TrialRecord.Editable.rewardVol;
-    goodmonkey(reward,...
-        'juiceline',   rewardLine,...
-        'numreward',   rewardReps,...
-        'pausetime',   rewardRepsGap,...
-        'nonblocking', 1);
+    goodmonkey(reward,'juiceline', 1,'numreward', 1,'pausetime', 1, 'nonblocking', 1);
     toggleobject(audCorr);
     idle(goodPause);
 else
@@ -227,19 +226,18 @@ else
     idle(badPause);
 end
 
-% TURN photodiode state to off at end of trial
-toggleobject(ptd, 'status', 'off');
-
-% SEND check odd lines
-eventmarker(chk.linesOdd);
+% TURN photodiode (and all visible stims) state to off at end of trial
+toggleobject(1:6, 'status', 'off');
 
 % TRIAL end
 eventmarker(trl.stop);
 TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
 
+% SEND check odd lines
+eventmarker(chk.linesOdd);
+
 % TRIAL end ------------------------------------------------------------------------------ 
 % FOOTER start --------------------------------------------------------------------------- 
-
 
 % ASSIGN trial footer eventmarkers
 cTrial       = trl.trialShift       + TrialRecord.CurrentTrialNumber;
@@ -247,6 +245,7 @@ cBlock       = trl.blockShift       + TrialRecord.CurrentBlock;
 cTrialWBlock = trl.trialWBlockShift + TrialRecord.CurrentTrialWithinBlock;
 cCondition   = trl.conditionShift   + TrialRecord.CurrentCondition;
 cTrialError  = trl.outcomeShift     + outcome;
+cExpResponse = exp.nan;
 cTrialFlag   = trl.typeShift;
 
 if isfield(Info, 'trialFlag')
@@ -280,7 +279,8 @@ eventmarker(cTrial);
 eventmarker(cBlock);     
 eventmarker(cTrialWBlock);
 eventmarker(cCondition); 
-eventmarker(cTrialError); 
+eventmarker(cTrialError);
+eventmarker(cExpResponse);
 eventmarker(cTrialFlag);
 
 % EDITABLE start marker
@@ -303,11 +303,13 @@ eventmarker(trl.edtStop);
 eventmarker(trl.footerStop);
 
 % SAVE to TrialRecord.user
-TrialRecord.User.juiceConsumed(trialNum)    = juiceConsumed;
-TrialRecord.User.responseCorrect(trialNum)  = outcome;
+TrialRecord.User.sampleID(trialNum)         = NaN;
+TrialRecord.User.testID(trialNum)           = NaN;
+TrialRecord.User.trialFlag(trialNum)        = NaN;
 TrialRecord.User.expectedResponse(trialNum) = NaN;
 TrialRecord.User.chosenResponse(trialNum)   = NaN;
-TrialRecord.User.trialFlag(trialNum)        = NaN;
+TrialRecord.User.responseCorrect(trialNum)  = outcome;
+TrialRecord.User.juiceConsumed(trialNum)    = juiceConsumed;
 
 % SAVE to Data.UserVars
 bhv_variable(...

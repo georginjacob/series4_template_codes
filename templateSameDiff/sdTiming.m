@@ -391,13 +391,21 @@ if isfield(Info, 'trialFlag')
 end
 
 % ASSIGN trial footer editable
-cGoodPause        = trl.edtShift + TrialRecord.Editable.goodPause;
-cBadPause         = trl.edtShift + TrialRecord.Editable.badPause;
-cTaskFixRadius    = trl.edtShift + TrialRecord.Editable.taskFixRadius;
-cCalFixRadius     = trl.edtShift + TrialRecord.Editable.calFixRadius;
-cCalFixInitPeriod = trl.edtShift + TrialRecord.Editable.calFixInitPeriod;
-cCalFixHoldPeriod = trl.edtShift + TrialRecord.Editable.calFixHoldPeriod;
-cRewardVol        = trl.edtShift + TrialRecord.Editable.rewardVol*1000;
+cGoodPause        = trl.shift + TrialRecord.Editable.goodPause;
+cBadPause         = trl.shift + TrialRecord.Editable.badPause;
+cTaskFixRadius    = trl.shift + TrialRecord.Editable.taskFixRadius;
+cCalFixRadius     = trl.shift + TrialRecord.Editable.calFixRadius;
+cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
+cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
+cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
+
+% PREPARE stim info to send in editable
+cSampleID = trl.shift + Info.sampleImageID;
+cSampleX  = trl.picPosShift + TaskObject.Position(9,1)*1000;
+cSampleY  = trl.picPosShift + TaskObject.Position(9,2)*1000;
+cTestID   = trl.shift + Info.testImageID;
+cTestX    = trl.picPosShift + TaskObject.Position(10,1)*1000;
+cTestY    = trl.picPosShift + TaskObject.Position(10,2)*1000;
 
 % FOOTER start marker
 eventmarker(trl.footerStart);
@@ -425,6 +433,20 @@ eventmarker(cRewardVol);
 
 % EDITABLE stop marker
 eventmarker(trl.edtStop);
+
+% STIM INFO start marker
+eventmarker(trl.stimStart);
+
+% SEND stim info - imageID, X position and Y position
+eventmarker(cSampleID);
+eventmarker(cSampleX);
+eventmarker(cSampleY);
+eventmarker(cTestID);
+eventmarker(cTestX);
+eventmarker(cTestY);
+
+% STIM INFO start marker
+eventmarker(trl.stimStop);
 
 % FOOTER end marker
 eventmarker(trl.footerStop);

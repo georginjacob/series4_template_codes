@@ -134,11 +134,19 @@ trl.outcomeShift     = 8500;
 trl.expRespFree      = 9000;
 trl.expRespSame      = 9001;
 trl.expRespDiff      = 9002;
+
+% TRL FOOTER EDITABLE - sent within trial footer 
 trl.edtStart         = 9100;
 trl.edtStop          = 9101;
-trl.edtShift         = 10000;
 
-% PIC POSITION - in dva between range of 100000-199999 (midpoint 150000)
+% TRL FOOTER STIM IDS - sent within trial footer 
+trl.stimStart        = 9200;
+trl.stimStop         = 9201;
+
+% TRL FOOTER SHIFT
+trl.shift            = 10000;
+
+% TRL FOOTER PIC POSITION SHIFT- in dva between range of 100000-199999 (midpoint 150000)
 % Usage = Value(dva)*1000 + trl.picPosShift (for e.g. -8*1000+150000 = 142000)
 trl.picPosShift      = 150000;
 

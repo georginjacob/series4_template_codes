@@ -253,13 +253,13 @@ if isfield(Info, 'trialFlag')
 end
 
 % ASSIGN trial footer editable
-cGoodPause        = trl.edtShift + TrialRecord.Editable.goodPause;
-cBadPause         = trl.edtShift + TrialRecord.Editable.badPause;
-cTaskFixRadius    = trl.edtShift + TrialRecord.Editable.taskFixRadius;
-cCalFixRadius     = trl.edtShift + TrialRecord.Editable.calFixRadius;
-cCalFixInitPeriod = trl.edtShift + TrialRecord.Editable.calFixInitPeriod;
-cCalFixHoldPeriod = trl.edtShift + TrialRecord.Editable.calFixHoldPeriod;
-cRewardVol        = trl.edtShift + TrialRecord.Editable.rewardVol*1000;
+cGoodPause        = trl.shift + TrialRecord.Editable.goodPause;
+cBadPause         = trl.shift + TrialRecord.Editable.badPause;
+cTaskFixRadius    = trl.shift + TrialRecord.Editable.taskFixRadius;
+cCalFixRadius     = trl.shift + TrialRecord.Editable.calFixRadius;
+cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
+cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
+cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
 
 % CONVERT calLocs values for sending through trial footer
 cCalLocs = nan(1,numel(calLocs));
@@ -298,6 +298,15 @@ eventmarker(cCalLocs);
 
 % EDITABLE stop marker
 eventmarker(trl.edtStop);
+
+% STIM INFO start marker
+eventmarker(trl.stimStart);
+
+% SEND calib point locations
+eventmarker(cCalLocs);
+
+% STIM INFO start marker
+eventmarker(trl.stimStop);
 
 % FOOTER end 
 eventmarker(trl.footerStop);

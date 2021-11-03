@@ -11,6 +11,7 @@ VERSION HISTORY
 - 29-Oct-2020 - Thomas  - Updated to match the version of templateSD
 - 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer and
                           accomodated code for delayPeriod of 0
+- 03-Nov-2021 - Thomas  - Updated to deal with wmFixCue
 %}
 % HEADER start ---------------------------------------------------------------------------
 
@@ -25,13 +26,13 @@ showcursor(false);
 trialNum = TrialRecord.CurrentTrialNumber;
 
 % ITI (set to 0 to measure true ITI in ML Dashboard)
-set_iti(200);
+set_iti(500);
 
 % EDITABLE variables that can be changed during the task
 editable(...
-    'goodPause',    'badPause',         'taskFixRadius',...
-    'calFixRadius', 'calFixInitPeriod', 'calFixHoldPeriod', 'calFixRandFlag',...
-    'rewardVol',    'rewardLine',       'rewardReps',       'rewardRepsGap');
+    'goodPause',      'badPause',         'taskFixRadius',...
+    'calFixRadius',   'calFixInitPeriod', 'calFixHoldPeriod',...
+    'calFixRandFlag', 'rewardVol');
 goodPause        = 200;
 badPause         = 1000;
 taskFixRadius    = 10;
@@ -40,9 +41,6 @@ calFixInitPeriod = 500;
 calFixHoldPeriod = 200;
 calFixRandFlag   = 1;
 rewardVol        = 0.2;
-rewardLine       = 1;
-rewardReps       = 1;
-rewardRepsGap    = 500;
 
 % PARAMETERS relevant for task timing and hold/fix control
 holdInitPeriod   = Info.holdInitPeriod;
@@ -65,9 +63,11 @@ trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
 
 % POINTERS to TaskObjects
-ptd   = 1;  hold  = 2;  fix   = 3;  calib = 4;  audCorr = 5;  audWrong = 6;
-stim1 = 7;  stim2 = 8;  stim3 = 9;  stim4 = 10; stim5   = 11;
-stim6 = 12; stim7 = 13; stim8 = 14; stim9 = 15; stim10  = 16;
+photodiodeCue = 1;  holdButton = 2;  initFixCue = 3;  wmFixCue = 4;
+calibCue      = 5;  audioCorr  = 6;  audioWrong = 7;  stim1    = 8;
+stim2         = 9;  stim3      = 10; stim4      = 11; stim5    = 12;
+stim6         = 13; stim7      = 14; stim8      = 15; stim9    = 16;
+stim10        = 17;
 
 % GROUP TaskObjects and eventmarkers for easy indexing
 selStim = [stim1; stim2; stim3; stim4; stim5; stim6; stim7; stim8; stim9; stim10];
@@ -106,21 +106,21 @@ TrialRecord.User.TrialStart(trialNum,:) = datevec(now);
 % RUN trial sequence till outcome registered
 while outcome < 0
     % PRESENT hold button
-    tHoldButtonOn = toggleobject([hold ptd], 'eventmarker', pic.holdOn);
+    tHoldButtonOn = toggleobject([holdButton photodiodeCue], 'eventmarker', pic.holdOn);
     
     % WAIT for touch in INIT period
     [ontarget, ~, tTrialInit] = eyejoytrack(...
-        'touchtarget',  hold, holdRadius, ...
-        '~touchtarget', hold, holdRadius + holdRadiusBuffer,...
+        'touchtarget',  holdButton, holdRadius, ...
+        '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
         holdInitPeriod);
     
     if(sum(ontarget) == 0)
         % Error if there's no touch anywhere
-        event   = [pic.holdOff bhv.holdNotInit];
+        event   = [bhv.holdNotInit pic.holdOff];
         outcome = err.holdNil; break
     elseif ontarget(2) == 1
         % Error if any touch outside hold button
-        event   = [pic.holdOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.holdOff];
         outcome = err.holdOutside; break
     else
         % Correctly initiated hold
@@ -128,26 +128,26 @@ while outcome < 0
     end
     
     % PRESENT fixation cue
-    tFixCueOn(1,:) = toggleobject([fix ptd], 'eventmarker', pic.fixOn);
+    tFixCueOn(1,:) = toggleobject([initFixCue photodiodeCue], 'eventmarker', pic.fixOn);
     
     % WAIT for fixation and CHECK for hold in HOLD period
     [ontarget, ~, tFixAcq] = eyejoytrack(...
-        'releasetarget',hold, holdRadius,...
-        '~touchtarget', hold, holdRadius + holdRadiusBuffer,...
-        'acquirefix',   fix,  taskFixRadius,...
+        'releasetarget', holdButton, holdRadius,...
+        '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
+        'acquirefix',    initFixCue, taskFixRadius,...
         fixInitPeriod);
     
     if ontarget(1) == 0
         % Error if monkey has released hold
-        event   = [pic.holdOff pic.fixOff bhv.holdNotMaint];
+        event   = [bhv.holdNotMaint pic.holdOff pic.fixOff];
         outcome = err.holdBreak; break
     elseif ontarget(2) == 1
         % Error if monkey touched outside
-        event   = [pic.holdOff pic.fixOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.holdOff pic.fixOff];
         outcome = err.holdOutside; break
     elseif ontarget(3) == 0
         % Error if monkey never looked inside fixRadius
-        event   = [pic.holdOff pic.fixOff bhv.fixNotInit];
+        event   = [bhv.fixNotInit pic.holdOff pic.fixOff];
         outcome = err.fixNil; break
     else
         % Correctly acquired fixation and held hold
@@ -156,61 +156,66 @@ while outcome < 0
     
     % CHECK hold and fixation in DELAY period (200ms to stabilize eye gaze)
     ontarget = eyejoytrack(...
-        'releasetarget',hold, holdRadius,...
-        '~touchtarget', hold, holdRadius + holdRadiusBuffer,...
-        'holdfix',      fix,  taskFixRadius,...
+        'releasetarget', holdButton, holdRadius,...
+        '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
+        'holdfix',       initFixCue, taskFixRadius,...
         fixHoldPeriod);
     
     if ontarget(1) == 0
         % Error if monkey released hold
-        event   = [pic.holdOff pic.fixOff bhv.holdNotMaint];
+        event   = [bhv.holdNotMaint pic.holdOff pic.fixOff];
         outcome = err.holdBreak; break
     elseif ontarget(2) == 1
         % Error if monkey touched outside
-        event   = [pic.holdOff pic.fixOff bhv.holdOutside];
+        event   = [bhv.holdOutside pic.holdOff pic.fixOff];
         outcome = err.holdOutside; break
     elseif ontarget(3) == 0
         % Error if monkey went outside fixRadius
-        event   = [pic.holdOff pic.fixOff bhv.fixNotMaint];
+        event   = [bhv.fixNotMaint pic.holdOff pic.fixOff];
         outcome = err.fixBreak; break
     else
         % Correctly held fixation & hold
         eventmarker([bhv.holdMaint bhv.fixMaint]);
-    end
-    
+    end    
     
     % LOOP for presenting stim
     for itemID = 1:Info.imgPerTrial
-        % CHECK if delayPeriod is 0 and not the first stim
-        if itemID == 1 || delayPeriod > 0
+        % CHECK if first stim, if not then delayPeriod > 0
+        if itemID == 1 
             % REMOVE fixation cue & PRESENT stimulus
-            tFixCueOff(itemID,:) = toggleobject([fix selStim(itemID) ptd],...
+            tFixCueOff(itemID,:) = toggleobject([initFixCue selStim(itemID) photodiodeCue],...
+                'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
+            tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
+        elseif delayPeriod > 0
+            % REMOVE fixation cue & PRESENT stimulus
+            tFixCueOff(itemID,:) = toggleobject([wmFixCue selStim(itemID) photodiodeCue],...
                 'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
             tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
         else
             % PRESENT stimulus
-            tSampleOn(itemID,:) = toggleobject([selStim(itemID) ptd],...
-                'eventmarker', selEvts(2*itemID)-1);
+            tSampleOn(itemID,:) = toggleobject([selStim(itemID-1) selStim(itemID) photodiodeCue],...
+                'eventmarker', [selEvts(2*itemID)-2 selEvts(2*itemID)-1]);
+            tSampleOff(itemID-1,:) = tSampleOn(itemID,:);
         end
         
         % CHECK fixation and hold maintenance for samplePeriod
         ontarget = eyejoytrack(...
-            'releasetarget',hold,            holdRadius,...
-            '~touchtarget', hold,            holdRadius + holdRadiusBuffer,...
-            'holdfix',      selStim(itemID), taskFixRadius,...
+            'releasetarget', holdButton,      holdRadius,...
+            '~touchtarget',  holdButton,      holdRadius + holdRadiusBuffer,...
+            'holdfix',       selStim(itemID), taskFixRadius,...
             samplePeriod);
         
         if ontarget(1) == 0
             % Error if monkey released hold
-            event   = [pic.holdOff selEvts(2*itemID) bhv.holdNotMaint];
+            event   = [bhv.holdNotMaint pic.holdOff selEvts(2*itemID)];
             outcome = err.holdBreak; break
         elseif ontarget(2) == 1
             % Error if monkey touched outside
-            event   = [pic.holdOff selEvts(2*itemID) bhv.holdOutside];
+            event   = [bhv.holdOutside pic.holdOff selEvts(2*itemID)];
             outcome = err.holdOutside; break
         elseif ontarget(3) == 0
             % Error if monkey went outside fixRadius
-            event   = [pic.holdOff selEvts(2*itemID) bhv.fixNotMaint];
+            event   = [bhv.fixNotMaint pic.holdOff selEvts(2*itemID)];
             outcome = err.fixBreak; break
         else
             % Correctly held fixation & hold
@@ -219,37 +224,37 @@ while outcome < 0
         
         % CHECK if delayPeriod is 0
         if delayPeriod > 0
-            % REMOVE stimulus & PRESENT fixation cue
-            tSampleOff(itemID,:)  = toggleobject([fix selStim(itemID) ptd],...
+            % REMOVE stimulus & PRESENT WM fixation cue
+            tSampleOff(itemID,:)  = toggleobject([wmFixCue selStim(itemID) photodiodeCue],...
                 'eventmarker', [selEvts(2*itemID) pic.fixOn]);
             tFixCueOn(itemID+1,:) = tSampleOff(itemID,:);
             
             % CHECK fixation and hold maintenance for delayPeriod
             ontarget = eyejoytrack(...
-                'releasetarget',hold, holdRadius,...
-                '~touchtarget', hold, holdRadius + holdRadiusBuffer,...
-                'holdfix',      fix,  taskFixRadius,...
+                'releasetarget',holdButton, holdRadius,...
+                '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
+                'holdfix',      wmFixCue,   taskFixRadius,...
                 delayPeriod);
             
             if ontarget(1) == 0
                 % Error if monkey released hold
-                event   = [pic.holdOff pic.fixOff bhv.holdNotMaint];
+                event   = [bhv.holdNotMaint pic.holdOff pic.fixOff];
                 outcome = err.holdBreak; break
             elseif ontarget(2) == 1
                 % Error if monkey touched outside
-                event   = [pic.holdOff pic.fixOff bhv.holdOutside];
+                event   = [bhv.holdOutside pic.holdOff pic.fixOff];
                 outcome = err.holdOutside; break
             elseif ontarget(3) == 0
                 % Error if monkey went outside fixRadius
-                event   = [pic.holdOff pic.fixOff bhv.fixNotMaint];
+                event   = [bhv.fixNotMaint pic.holdOff pic.fixOff];
                 outcome = err.fixBreak; break
             else
                 % Correctly held fixation & hold
                 eventmarker([bhv.holdMaint bhv.fixMaint]);
             end
-        else
-            % REMOVE stimulus
-            tSampleOff(itemID,:) = toggleobject(selStim(itemID),...
+        elseif delayPeriod == 0 && itemID == Info.imgPerTrial
+            % REMOVE last stimulus
+             tSampleOff(itemID,:) = toggleobject(selStim(itemID),...
                 'eventmarker', selEvts(2*itemID));
         end
     end
@@ -257,7 +262,7 @@ while outcome < 0
     % TRIAL finished successfully if all stims fixated correctly
     if outcome < 0
         if delayPeriod > 0
-            tFixCueOff(itemID+1,:) = toggleobject(fix,...
+            tFixCueOff(itemID+1,:) = toggleobject(wmFixCue,...
                 'eventmarker', pic.fixOff);
         end
         event   = [pic.holdOff bhv.respCorr rew.juice];
@@ -288,11 +293,11 @@ elseif outcome == err.respCorr
         'numreward',   rewardReps,...
         'pausetime',   rewardRepsGap,...
         'nonblocking', 1);
-    toggleobject(audCorr);
+    toggleobject(audioCorr);
     idle(goodPause);
 else
     % WRONG response; give audWrong & badpause
-    toggleobject(audWrong);
+    toggleobject(audioWrong);
     idle(badPause);
 end
 

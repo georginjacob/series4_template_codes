@@ -1,10 +1,10 @@
 % SAME-DIFFERENT TRIAL in MonkeyLogic - Vision Lab, IISc
+% ----------------------------------------------------------------------------------------
+% Presents a sample and test image at the center of the screen but separated temporally.
+% Provides two touch button on the right side (from subjects' POV) as responses:
+%  - Top button for 'same' response, and
+%  - Bottom button for 'diff' response.
 %{
-Presents a sample and test image at the center of the screen but separated temporally.
-Provides two touch button on the right side (from subjects' POV) as responses:
- - Top button for 'same' response, and
- - Bottom button for 'diff' response.
-
 VERSION HISTORY
 - 14-Jun-2019 - Thomas  - First implementation
                 Zhivago
@@ -22,7 +22,9 @@ VERSION HISTORY
 - 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
 - 26-Oct-2021 - Thomas  - Included tRespOff and eventmarker to indicated response given by
                           monkey. Also updated handling testPeriod < respPeriod
+- 03-Nov-2021 - Thomas  - Included wmFixCue TaskObject in conditions file and task
 %}
+
 % HEADER start ---------------------------------------------------------------------------
 
 % CHECK if touch and eyesignal are present to continue
@@ -40,9 +42,9 @@ set_iti(500);
 
 % EDITABLE variables that can be changed during the task
 editable(...
-    'goodPause',    'badPause',         'taskFixRadius',...
-    'calFixRadius', 'calFixInitPeriod', 'calFixHoldPeriod', 'calFixRandFlag',...
-    'rewardVol');
+    'goodPause',     'badPause',         'taskFixRadius',...
+    'calFixRadius',  'calFixInitPeriod', 'calFixHoldPeriod',...
+    'calFixRandFlag','rewardVol');
 goodPause        = 200;
 badPause         = 1000;
 taskFixRadius    = 10;
@@ -76,20 +78,21 @@ trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
 
 % POINTERS to TaskObjects
-ptd      = 1; 
-hold     = 2;
-fix      = 3; 
-calib    = 4; 
-audCorr  = 5; 
-audWrong = 6; 
-same     = 7;
-diff     = 8; 
-sample   = 9; 
-test     = 10;
+photodiodeCue = 1; 
+holdButton    = 2;
+initFixCue    = 3; 
+wmFixCue      = 4;
+calibCue      = 5; 
+audioCorr     = 6; 
+audioWrong    = 7; 
+sameButton    = 8;
+diffButton    = 9; 
+sampleImage   = 10; 
+testImage     = 11;
 
 % SET response button order for SD task
 if ~isfield(TrialRecord.User, 'respOrder')
-    TrialRecord.User.respOrder = [same diff];
+    TrialRecord.User.respOrder = [sameButton diffButton];
 end
 respOrder = TrialRecord.User.respOrder;
 
@@ -130,13 +133,13 @@ TrialRecord.User.TrialStart(trialNum,:) = datevec(now);
 % RUN trial sequence till outcome registered
 while outcome < 0
     % PRESENT hold button
-    tHoldButtonOn = toggleobject([hold ptd], 'eventmarker', pic.holdOn);
-    visibleStims  = hold;
+    tHoldButtonOn = toggleobject([holdButton photodiodeCue], 'eventmarker', pic.holdOn);
+    visibleStims  = holdButton;
     
     % WAIT for touch in INIT period
     [ontarget, ~, tTrialInit] = eyejoytrack(...
-        'touchtarget',  hold, holdRadius,...
-        '~touchtarget', hold, holdRadius + holdRadiusBuffer,...
+        'touchtarget',  holdButton, holdRadius,...
+        '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
         holdInitPeriod);
     
     if(sum(ontarget) == 0)
@@ -153,14 +156,14 @@ while outcome < 0
     end
     
     % PRESENT fixation cue
-    tFixAcqCueOn = toggleobject([fix ptd], 'eventmarker', pic.fixOn);
-    visibleStims = [hold fix];
+    tFixAcqCueOn = toggleobject([initFixCue photodiodeCue], 'eventmarker', pic.fixOn);
+    visibleStims = [holdButton initFixCue];
     
     % WAIT for fixation and CHECK for hold in HOLD period
     [ontarget, ~, tFixAcq] = eyejoytrack(...
-        'releasetarget', hold, holdRadius,...
-        '~touchtarget',  hold, holdRadius + holdRadiusBuffer,...
-        'acquirefix',    fix,  taskFixRadius,...
+        'releasetarget', holdButton, holdRadius,...
+        '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
+        'acquirefix',    initFixCue,  taskFixRadius,...
         fixInitPeriod);
     
     if ontarget(1) == 0
@@ -182,9 +185,9 @@ while outcome < 0
     
     % CHECK hold and fixation in HOLD period (200ms to stabilize eye gaze)
     ontarget = eyejoytrack(...
-        'releasetarget', hold, holdRadius,...
-        '~touchtarget',  hold, holdRadius + holdRadiusBuffer,...
-        'holdfix',       fix,  taskFixRadius,...
+        'releasetarget', holdButton, holdRadius,...
+        '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
+        'holdfix',       initFixCue,  taskFixRadius,...
         fixHoldPeriod); 
     
     if ontarget(1) == 0
@@ -205,15 +208,15 @@ while outcome < 0
     end    
     
     % REMOVE fixation cue and PRESENT sample image
-    tFixAcqCueOff = toggleobject([fix sample ptd], 'eventmarker', [pic.fixOff pic.sampleOn]);
+    tFixAcqCueOff = toggleobject([initFixCue sampleImage photodiodeCue], 'eventmarker', [pic.fixOff pic.sampleOn]);
     tSampleOn     = tFixAcqCueOff;
-    visibleStims  = [hold sample];
+    visibleStims  = [holdButton sampleImage];
     
     % CHECK hold and fixation in SAMPLE ON period
     ontarget = eyejoytrack(...
-        'releasetarget', hold,   holdRadius,...
-        '~touchtarget',  hold,   holdRadius + holdRadiusBuffer,...
-        'holdfix',       sample, taskFixRadius,...
+        'releasetarget', holdButton,   holdRadius,...
+        '~touchtarget',  holdButton,   holdRadius + holdRadiusBuffer,...
+        'holdfix',       sampleImage, taskFixRadius,...
         samplePeriod);
     
     if ontarget(1) == 0
@@ -236,26 +239,21 @@ while outcome < 0
     % HANDLE sample removal and test presetation considering delayPeriod duration
     if delayPeriod == 0
         % REMOVE sample and PRESENT test and response buttons
-        tSampleOff = toggleobject([sample hold test same diff ptd], 'eventmarker',...
+        tSampleOff = toggleobject([sampleImage holdButton testImage sameButton diffButton photodiodeCue], 'eventmarker',...
             [pic.sampleOff pic.holdOff pic.choiceOn pic.testOn]);
         tTestRespOn  = tSampleOff;
-        visibleStims = [test same diff];
+        visibleStims = [testImage sameButton diffButton];
     else
-        % REPOSITION fixation cue offscreen if not needed
-        if delayFixFlag == 0
-            reposition_object(fix, [200 200]);
-        end
-        
-        % REMOVE sample image and PRESENT fixation cue
-        tSampleOff     = toggleobject([sample fix ptd], 'eventmarker', [pic.sampleOff pic.fixOn]);
+        % REMOVE sample image and PRESENT WM fixation cue
+        tSampleOff     = toggleobject([sampleImage wmFixCue photodiodeCue], 'eventmarker', [pic.sampleOff pic.fixOn]);
         tFixMaintCueOn = tSampleOff;
-        visibleStims   = [hold fix];
+        visibleStims   = [holdButton wmFixCue];
         
         % CHECK hold and fixation in DELAY period
         ontarget = eyejoytrack(...
-            'releasetarget', hold,    holdRadius,...
-            '~touchtarget',  hold,    holdRadius + holdRadiusBuffer,...
-            'holdfix',       sample,  taskFixRadius,...
+            'releasetarget', holdButton,   holdRadius,...
+            '~touchtarget',  holdButton,   holdRadius + holdRadiusBuffer,...
+            'holdfix',       wmFixCue,  taskFixRadius,...
             delayPeriod);
         
         if ontarget(1) == 0
@@ -276,16 +274,16 @@ while outcome < 0
         end
         
         % REMOVE fixation cue and PRESENT test and response buttons
-        tFixMaintCueOff = toggleobject([fix hold test same diff ptd], 'eventmarker',...
+        tFixMaintCueOff = toggleobject([wmFixCue holdButton testImage sameButton diffButton photodiodeCue], 'eventmarker',...
             [pic.fixOff pic.holdOff pic.choiceOn pic.testOn]);
         tTestRespOn     = tFixMaintCueOff;
-        visibleStims    = [test same diff];
+        visibleStims    = [testImage sameButton diffButton];
     end
                
     % WAIT for response in TEST ON period
     [chosenResp, ~, tBhvResp] = eyejoytrack(...
         'touchtarget',  respOrder, holdRadius,...
-        '~touchtarget', hold,      holdRadius + holdRadiusBuffer,...
+        '~touchtarget', holdButton,      holdRadius + holdRadiusBuffer,...
         testPeriod);
     
     % CHECK if response given
@@ -296,13 +294,13 @@ while outcome < 0
     % HANDLE situations where testPeriod < respPeriod
     if testPeriod < respPeriod && sum(chosenResp) == 0
         % REMOVE test image
-        tTestOff     = toggleobject([test ptd],'eventmarker', pic.testOff);
-        visibleStims = [same diff];
+        tTestOff     = toggleobject([testImage photodiodeCue],'eventmarker', pic.testOff);
+        visibleStims = [sameButton diffButton];
         
         % WAIT for response if TEST period < RESP period
         [chosenResp, ~, tBhvResp] = eyejoytrack(...
             'touchtarget',  respOrder, holdRadius,...
-            '~touchtarget', hold,      holdRadius + holdRadiusBuffer,...
+            '~touchtarget', holdButton,      holdRadius + holdRadiusBuffer,...
             (respPeriod - testPeriod));
         
         % CHECK if response given
@@ -340,11 +338,11 @@ end
 % SET trial outcome and remove all visible stimuli
 trialerror(outcome);
 if isnan(tTestOff) && ~isnan(tTestRespOn)
-    tAllOff  = toggleobject([visibleStims ptd], 'eventmarker', [event(1) pic.testOff event(2:end)]);
+    tAllOff  = toggleobject([visibleStims photodiodeCue], 'eventmarker', [event(1) pic.testOff event(2:end)]);
     tTestOff = tAllOff;
     tRespOff = tAllOff;
 else
-    tAllOff  = toggleobject([visibleStims ptd], 'eventmarker', event);
+    tAllOff  = toggleobject([visibleStims photodiodeCue], 'eventmarker', event);
     tRespOff = tAllOff;
 end    
 
@@ -356,16 +354,16 @@ elseif outcome == err.respCorr
     % CORRECT response; give reward, audCorr & good pause
     juiceConsumed = TrialRecord.Editable.rewardVol;
     goodmonkey(reward,'juiceline', 1,'numreward', 1,'pausetime', 1, 'nonblocking', 1);
-    toggleobject(audCorr);
+    toggleobject(audioCorr);
     idle(goodPause);
 else
     % WRONG response; give audWrong & badpause
-    toggleobject(audWrong);
+    toggleobject(audioWrong);
     idle(badPause);
 end
 
 % TURN photodiode (and all stims) state to off at end of trial
-toggleobject(1:10, 'status', 'off');
+toggleobject(1:11, 'status', 'off');
 
 % TRIAL end
 eventmarker(trl.stop);

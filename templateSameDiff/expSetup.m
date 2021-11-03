@@ -3,6 +3,7 @@ clc; clear;
 % FILE names
 timingFileName     = 'sdTiming';
 conditionsFileName = 'sdConditions.txt';
+wmFixCueState      = 0; % If 1, then visible
 
 % IMAGE PAIRS - load filenames and make pairs
 imgFiles  = dir('.\stim\*.bmp');
@@ -52,7 +53,7 @@ samplePeriod   = 400;
 delayPeriod    = 200;
 testPeriod     = 5000;
 respPeriod     = 5000;
-delayFixFlag   = 1;
+delayFixFlag   = wmFixCueState;
 
 % INFO fields
 infoFields =  {
@@ -116,4 +117,4 @@ for trialID = 1:length(imgPairs)
 end
 
 %% CREATE conditions file
-ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block)     
+ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, wmFixCueState)     

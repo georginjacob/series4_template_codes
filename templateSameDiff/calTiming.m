@@ -1,8 +1,8 @@
 % EYE CALIBRATION TRIAL for MonkeyLogic - Vision Lab, IISc
+% ----------------------------------------------------------------------------------------
+% Presents a set of calibration points where animal has to fixate while pressing the hold
+% button. Breaking of fixation/hold or touch outside of hold button will abort the trial.
 %{
-Presents a set of calibration points where animal has to fixate while pressing the hold
-button. Breaking of fixation/hold or touch outside of hold button will abort the trial.
-
 VERSION HISTORY
 - 14-Jun-2019 - Thomas  - First implementation
                 Zhivago 
@@ -11,12 +11,14 @@ VERSION HISTORY
                           Added touching outside hold buttons breaks trial
 - 10-Aug-2020 - Thomas  - Removed bulk adding of variables to TrialRecord.User
                         - Simplified general code structure, specifically on errors
-  14-Sep-2020 - Thomas  - General changes to code structure to improve legibilty
-  14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
-  29-Oct-2020 - Thomas  - combine calibration codes for template sd and fix 
+- 14-Sep-2020 - Thomas  - General changes to code structure to improve legibilty
+- 14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
+- 29-Oct-2020 - Thomas  - combine calibration codes for template sd and fix 
                           (only requirement for this was common editable var names) 
-  31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
+- 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
+- 03-Nov-2021 - Thomas  - Included wmFixCue TaskObject in conditions file
 %}
+
 % HEADER start ---------------------------------------------------------------------------
 
 % CHECK if touch and eyesignal are present to continue
@@ -30,19 +32,19 @@ showcursor(false);
 trialNum = TrialRecord.CurrentTrialNumber;
 
 % ITI (set to 0 to measure true ITI in ML Dashboard)
-set_iti(200);
+set_iti(500);
 
 % EDITABLE variables that can be changed during the task
 editable(...
-    'goodPause',    'badPause',         'taskFixRadius',...
-    'calFixRadius', 'calFixInitPeriod', 'calFixHoldPeriod', 'calFixRandFlag',...
-    'rewardVol');
-goodPause        = 200; 
-badPause         = 1000; 
+    'goodPause',     'badPause',         'taskFixRadius',...
+    'calFixRadius',  'calFixInitPeriod', 'calFixHoldPeriod',...
+    'calFixRandFlag','rewardVol');
+goodPause        = 200;
+badPause         = 1000;
 taskFixRadius    = 10;
-calFixRadius     = 6; 
+calFixRadius     = 6;
 calFixInitPeriod = 500;
-calFixHoldPeriod = 200; 
+calFixHoldPeriod = 200;
 calFixRandFlag   = 1;
 rewardVol        = 0.2;
 
@@ -63,12 +65,11 @@ trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
 
 % POINTERS to TaskObjects
-ptd      = 1; 
-hold     = 2;
-fix      = 3; 
-calib    = 4; 
-audCorr  = 5; 
-audWrong = 6; 
+photodiodeCue = 1; 
+holdButton    = 2;
+calibCue      = 5; 
+audioCorr     = 6; 
+audioWrong    = 7; 
 
 % CALIBRATION locations in DVA and group eventmarkers for easy indexing
 calLocs  = [-8,-8; 8,8; 8,-8; -8,8];
@@ -113,16 +114,16 @@ TrialRecord.User.TrialStart(trialNum,:) = datevec(now);
 % RUN trial sequence till outcome registered
 while outcome < 0
     % REPOSTITION the hold button
-    reposition_object(hold, [28 0]);
+    reposition_object(holdButton, [28 0]);
     
     % PRESENT hold button
-    tHoldButtonOn = toggleobject([hold ptd], 'eventmarker', pic.holdOn);
-    visibleStims  = hold;
+    tHoldButtonOn = toggleobject([holdButton photodiodeCue], 'eventmarker', pic.holdOn);
+    visibleStims  = holdButton;
     
     % WAIT for touch in INIT period
     [ontarget, ~, tTrialInit] = eyejoytrack(...
-        'touchtarget',  hold, holdRadius,...
-        '~touchtarget', hold, holdRadius + holdRadiusBuffer,...
+        'touchtarget',  holdButton, holdRadius,...
+        '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
         holdInitPeriod);
 
     if(sum(ontarget) == 0)
@@ -140,17 +141,17 @@ while outcome < 0
            
     % LOOP for presenting calib at each selLoc
     for locID = 1:size(calLocs,1)
-        reposition_object(calib, calLocs(locID,:));
+        reposition_object(calibCue, calLocs(locID,:));
         
         % PRESENT fixation cue
-        tFixAcqCueOn(locID) = toggleobject([calib ptd], 'eventmarker', calEvts(locID*2-1));
-        visibleStims        = [hold calib];
+        tFixAcqCueOn(locID) = toggleobject([calibCue photodiodeCue], 'eventmarker', calEvts(locID*2-1));
+        visibleStims        = [holdButton calibCue];
         
         % WAIT for fixation and check for hold maintenance
         [ontarget, ~, tFixAcq(locID)] = eyejoytrack(...
-            'releasetarget',hold,  holdRadius,...
-            '~touchtarget', hold,  holdRadius + holdRadiusBuffer,...
-            'acquirefix',   calib, calFixRadius,...
+            'releasetarget',holdButton,  holdRadius,...
+            '~touchtarget', holdButton,  holdRadius + holdRadiusBuffer,...
+            'acquirefix',   calibCue, calFixRadius,...
             calFixInitPeriod);
         
         if ontarget(1) == 0
@@ -172,9 +173,9 @@ while outcome < 0
         
         % CHECK fixation and hold maintenance for fixationPeriod
         ontarget = eyejoytrack(...
-            'releasetarget',hold,  holdRadius,...
-            '~touchtarget', hold,  holdRadius + holdRadiusBuffer,...
-            'holdfix',      calib, calFixRadius,...
+            'releasetarget',holdButton,  holdRadius,...
+            '~touchtarget', holdButton,  holdRadius + holdRadiusBuffer,...
+            'holdfix',      calibCue, calFixRadius,...
             calFixHoldPeriod);
         
         if ontarget(1) == 0
@@ -195,8 +196,8 @@ while outcome < 0
         end
         
         % REMOVE the calibration image image off
-        tFixAcqCueOff(locID) = toggleobject(calib, 'eventmarker', calEvts(locID*2));
-        visibleStims         = hold;
+        tFixAcqCueOff(locID) = toggleobject(calibCue, 'eventmarker', calEvts(locID*2));
+        visibleStims         = holdButton;
     end
     
     % TRIAL finished successfully if all stims fixated correctly
@@ -208,7 +209,7 @@ end
 
 % SET trial outcome and remove all visible stimuli
 trialerror(outcome);
-tAllOff = toggleobject([visibleStims ptd], 'eventmarker', event);
+tAllOff = toggleobject([visibleStims photodiodeCue], 'eventmarker', event);
 
 % REWARD monkey if correct response given
 if outcome == err.holdNil
@@ -218,16 +219,16 @@ elseif outcome == err.respCorr
     % CORRECT response; give reward, audCorr & good pause
     juiceConsumed = TrialRecord.Editable.rewardVol;
     goodmonkey(reward,'juiceline', 1,'numreward', 1,'pausetime', 1, 'nonblocking', 1);
-    toggleobject(audCorr);
+    toggleobject(audioCorr);
     idle(goodPause);
 else
     % WRONG response; give audWrong & badpause
-    toggleobject(audWrong);
+    toggleobject(audioWrong);
     idle(badPause);
 end
 
 % TURN photodiode (and all visible stims) state to off at end of trial
-toggleobject(1:6, 'status', 'off');
+toggleobject(1:7, 'status', 'off');
 
 % TRIAL end
 eventmarker(trl.stop);

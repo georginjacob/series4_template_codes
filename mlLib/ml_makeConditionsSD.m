@@ -5,7 +5,6 @@
 % Same Diff template experiment.
 %
 % INPUTS
-%
 % timingFileName     - the name of the timing file (extension not required).
 % conditionsFileName - the name of the conditions file (*.txt).
 % sdPairs            - file names (without extension) of the stimuli used in each trial
@@ -14,11 +13,11 @@
 %                      that can be accessed in the timing file (eg:'text','ab','num',1).
 % frequency          - the repetitions required for each condition to counter-balance.
 % block              - the block ID for each condition.
+% wmFixState         - if 1, wmFixCue visible, else black.
 %
 % OUTPUT
-%
 % "conditionsFileName.txt" in the current directory
-%
+%{
 % VERSION HISTORY
 % - 14-Jun-2019 - Thomas  - First implementation
 %                 Zhivago
@@ -27,9 +26,12 @@
 %                 Harish
 % - 22-Oct-2020 - Thomas  - Removed validation block, fixed info and other minor updates
 % - 29-Oct-2020 - Thomas  - Removed extra info
+% - 03-Nov-2021 - Thomas  - Reworked to include wmFix cue
 % ---------------------------------------------------------------------------------------
+%}
 
-function ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block)
+function ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, wmFixState)
+
 % OPEN the conditions .txt file for writing
 conditionsFile = fopen(conditionsFileName, 'w');
 
@@ -37,53 +39,76 @@ conditionsFile = fopen(conditionsFileName, 'w');
 expTimingFile = timingFileName;
 calTimingFile ='calTiming';
 
-% TASK objects - Static
-taskObj01Ptd    = 'sqr([3.0 2.5], [1 1 1], 1,  0,  19)';
-taskObj02Hold   = 'crc(4, [0 0.33 0], 1, 20, 0)';
-taskObj03Fix    = 'crc(0.1, [1 1 0], 1, 0, 0)';
-taskObj04Calib  = 'crc(0.5, [0.5 0.5 0.5], 1, 0, 0)';
-taskObj05Corr   = 'snd(.\aud\correct)';
-taskObj06Incorr = 'snd(.\aud\incorrect)';
-taskObj07Same   = 'crc(4, [0 0.33 0], 1, 20, 10)';
-taskObj08Diff   = 'crc(4, [0 0.33 0], 1, 20, -10)';
+
+% PROPERTIES for static TaskObjects
+ptdSqrLoc       = [0 19];
+ptdSqrSize      = '[3.0 2.5]';
+ptdSqrColor     = '[1 1 1]';
+buttonLoc       = [20 10]; % [holdButtonX/respButtonX respButtonY]
+buttonSize      = '4';
+buttonColor     = '[0 0.33 0]';
+initFixCueSize  = '0.1';
+initFixCueColor = '[1 1 0]';
+wmFixCueColor   = '[0 0 0]';
+calibCueSize    = '0.5';
+calibCueColor   = '[0.5 0.5 0.5]';
+if wmFixState == 1
+    wmFixCueColor = initFixCueColor;
+end
+
+% STATIC TaskObjects
+photodiodeSqr  = sprintf('sqr(%s, %s, 1, %d, %d)', ptdSqrSize, ptdSqrColor, ptdSqrLoc(1), ptdSqrLoc(2));
+holdButton     = sprintf('crc(%s, %s, 1, %d, 0)', buttonSize, buttonColor, buttonLoc(1));
+initFixCue     = sprintf('crc(%s, %s, 1, 0, 0)', initFixCueSize, initFixCueColor);
+wmFixCue       = sprintf('crc(%s, %s, 1, 0, 0)', initFixCueSize, wmFixCueColor);
+calibCue       = sprintf('crc(%s, %s, 1, 0, 0)', calibCueSize, calibCueColor);
+sameButton     = sprintf('crc(%s, %s, 1, %d, %d)', buttonSize, buttonColor, buttonLoc(1), buttonLoc(2));
+diffButton     = sprintf('crc(%s, %s, 1, %d, -%d)', buttonSize, buttonColor, buttonLoc(1), buttonLoc(2));
+correctAudio   = 'snd(.\aud\correct)';
+wrongAudio     = 'snd(.\aud\incorrect)';
 
 % WRITE the first line of the conditions file (describes each tab delimited column)
-fprintf(conditionsFile, ['Condition\t', 'Info\t',         'Frequency\t',  'Block\t',...
-    'Timing File\t',  'TaskObject#1\t', 'TaskObject#2\t', 'TaskObject#3\t',...
-    'TaskObject#4\t', 'TaskObject#5\t', 'TaskObject#6\t', 'TaskObject#7\t',...
-    'TaskObject#8\t', 'TaskObject#9\t', 'TaskObject#10\n']);
+fprintf(conditionsFile, [...
+    'Condition\t',    'Info\t',         'Frequency\t',     'Block\t',...
+    'Timing File\t',  'TaskObject#1\t', 'TaskObject#2\t',  'TaskObject#3\t',...
+    'TaskObject#4\t', 'TaskObject#5\t', 'TaskObject#6\t',  'TaskObject#7\t',...
+    'TaskObject#8\t', 'TaskObject#9\t', 'TaskObject#10\t', 'TaskObject#11\n']);
 
 % WRITE CALIBRATION conditions - Block 1 -------------------------------------------------
-% TASK objects
-sampleName      = sdPairs{1,1};
-testName        = sdPairs{1,2};
-taskObj09Sample = sprintf('pic(%s, 0, 0)', sampleName);
-taskObj10Test   = sprintf('pic(%s, 0, 0)', testName);
+% DUMMY TaskObjects for calibration trial
+sampleImageName = sdPairs{1,1};
+testImageName   = sdPairs{1,2};
+sampleImage     = sprintf('pic(%s, 0, 0)', sampleImageName);
+testImage       = sprintf('pic(%s, 0, 0)', testImageName);
 
 % PRINT to file
-fprintf(conditionsFile, ['%d\t', '%s\t', '%d\t', '%d\t', '%s\t', '%s\t',...
-    '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\n'],...
-    1,               info{1},       1,             1,               calTimingFile,...
-    taskObj01Ptd,    taskObj02Hold, taskObj03Fix,  taskObj04Calib,  taskObj05Corr,...
-    taskObj06Incorr, taskObj07Same, taskObj08Diff, taskObj09Sample, taskObj10Test);
+fprintf(conditionsFile, [...
+    '%d\t',        '%s\t',     '%d\t',     '%d\t',     '%s\t',...
+    '%s\t',        '%s\t',     '%s\t',     '%s\t',     '%s\t',...
+    '%s\t',        '%s\t',     '%s\t',     '%s\t',     '%s\t',      '%s\n'],...
+    1,             info{1},    1,          1,          calTimingFile,...
+    photodiodeSqr, holdButton, initFixCue, wmFixCue,   calibCue,...
+    correctAudio,  wrongAudio, sameButton, diffButton, sampleImage, testImage);
 
 % WRITE MAIN experiment conditions - Block 2 onward --------------------------------------
 % Increment 'block' by 1 as block 1 = calibration
 block = block + 1;
 
-for trialID = 1:length(sdPairs)    
-    % TASK objects - Variable
-    sampleName      = sdPairs{trialID,1};
-    testName        = sdPairs{trialID,2};   
-    taskObj09Sample = sprintf('pic(%s, 0, 0)', sampleName);
-    taskObj10Test   = sprintf('pic(%s, 0, 0)', testName);
+for trialID = 1:length(sdPairs)
+    % VARIBLE TaskObjects
+    sampleImageName = sdPairs{trialID,1};
+    testImageName   = sdPairs{trialID,2};
+    sampleImage     = sprintf('pic(%s, 0, 0)', sampleImageName);
+    testImage       = sprintf('pic(%s, 0, 0)', testImageName);
     
     % PRINT to file
-    fprintf(conditionsFile, ['%d\t', '%s\t', '%d\t', '%d\t', '%s\t', '%s\t',...
-        '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\t', '%s\n'],...
-        trialID + 1,     info{trialID}, frequency(trialID), block(trialID),  expTimingFile,...
-        taskObj01Ptd,    taskObj02Hold, taskObj03Fix,       taskObj04Calib,  taskObj05Corr,...
-        taskObj06Incorr, taskObj07Same, taskObj08Diff,      taskObj09Sample, taskObj10Test);
+    fprintf(conditionsFile, [...
+        '%d\t',        '%s\t',        '%d\t',             '%d\t',         '%s\t',...
+        '%s\t',        '%s\t',        '%s\t',             '%s\t',         '%s\t',...
+        '%s\t',        '%s\t',        '%s\t',             '%s\t',         '%s\t',      '%s\n'],...
+        trialID + 1,   info{trialID}, frequency(trialID), block(trialID), expTimingFile,...
+        photodiodeSqr, holdButton,    initFixCue,         wmFixCue,       calibCue,...
+        correctAudio,  wrongAudio,    sameButton,         diffButton,     sampleImage, testImage);
 end
 
 % CLOSE the conditions file

@@ -46,9 +46,28 @@ while(count <= ((length(pairs)) / blockL))
     count = count + 1;
 end
 
+%% IMAGE file names and other variables
+for trialID = 1:length(imgPairs)    
+    sampleImageID = imgPairs(trialID, 1);
+    testImageID   = imgPairs(trialID, 2);
+    
+    tempVar             = strsplit(imgFiles(sampleImageID).name, '.');
+    sdPairs{trialID, 1} = ['.\stim\' tempVar{1}];
+    tempVar             = strsplit(imgFiles(testImageID).name, '.');
+    sdPairs{trialID, 2} = ['.\stim\' tempVar{1}];
+    
+    if sampleImageID == testImageID
+        expectedResponse(trialID,1)  = 1;
+        trialFlag(trialID,1)  = 1;
+    else
+        expectedResponse(trialID, 1) = 2;
+        trialFlag(trialID,1)  = 2;
+    end
+end
+
 %% VARIABLES - trial timings
 holdInitPeriod = 10000;
-fixInitPeriod  = 350; 
+fixInitPeriod  = 500; 
 samplePeriod   = 400;
 delayPeriod    = 200;
 testPeriod     = 5000;
@@ -69,32 +88,14 @@ infoFields =  {
     '''delayPeriod'',',      'delayPeriod'
     '''testPeriod'',',       'testPeriod'
     '''respPeriod'',',       'respPeriod'
-    '''delayFixFlag'',',     'delayFixFlag'
+    '''delayFixFlag'',',     'wmFixCueState'
     };
 
 % TRIAL info
 for trialID = 1:length(imgPairs)
-    
-    sampleImageID = imgPairs(trialID, 1);
-    testImageID   = imgPairs(trialID, 2);
-    
-    tempVar             = strsplit(imgFiles(sampleImageID).name, '.');
-    sdPairs{trialID, 1} = ['.\stim\' tempVar{1}];
-    tempVar             = strsplit(imgFiles(testImageID).name, '.');
-    sdPairs{trialID, 2} = ['.\stim\' tempVar{1}];
-    
-    if sampleImageID == testImageID
-        expectedResponse(trialID,1)  = 1;
-        trialFlag(trialID,1)  = 1;
-    else
-        expectedResponse(trialID, 1) = 2;
-        trialFlag(trialID,1)  = 2;
-    end
-    
     tempVar = [];
     
-    for stringID = 1:length(infoFields)
-         
+    for stringID = 1:length(infoFields)         
         value      = eval(char(infoFields(stringID,2)));
         stringVal  = char(infoFields(stringID,1));
         

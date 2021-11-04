@@ -96,6 +96,9 @@ juiceConsumed = NaN;
 while istouching(), end
 outcome = -1;
 
+% TEMPORARY variable that contains the stims visible to monkey on the screen (except ptd)
+visibleStims = [];
+
 % SEND check even lines
 eventmarker(chk.linesEven);
 
@@ -107,6 +110,7 @@ TrialRecord.User.TrialStart(trialNum,:) = datevec(now);
 while outcome < 0
     % PRESENT hold button
     tHoldButtonOn = toggleobject([holdButton photodiodeCue], 'eventmarker', pic.holdOn);
+    visibleStims  = holdButton;
     
     % WAIT for touch in INIT period
     [ontarget, ~, tTrialInit] = eyejoytrack(...
@@ -129,6 +133,7 @@ while outcome < 0
     
     % PRESENT fixation cue
     tFixCueOn(1,:) = toggleobject([initFixCue photodiodeCue], 'eventmarker', pic.fixOn);
+    visibleStims   = [holdButton initFixCue];
     
     % WAIT for fixation and CHECK for hold in HOLD period
     [ontarget, ~, tFixAcq] = eyejoytrack(...
@@ -154,7 +159,7 @@ while outcome < 0
         eventmarker([bhv.holdMaint bhv.fixInit]);
     end
     
-    % CHECK hold and fixation in DELAY period (200ms to stabilize eye gaze)
+    % CHECK hold and fixation in FIXHOLD period (to stabilize eye gaze)
     ontarget = eyejoytrack(...
         'releasetarget', holdButton, holdRadius,...
         '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
@@ -176,26 +181,29 @@ while outcome < 0
     else
         % Correctly held fixation & hold
         eventmarker([bhv.holdMaint bhv.fixMaint]);
-    end    
+    end
     
     % LOOP for presenting stim
     for itemID = 1:Info.imgPerTrial
         % CHECK if first stim, if not then delayPeriod > 0
-        if itemID == 1 
-            % REMOVE fixation cue & PRESENT stimulus
+        if itemID == 1
+            % REMOVE init fixation cue & PRESENT stimulus
             tFixCueOff(itemID,:) = toggleobject([initFixCue selStim(itemID) photodiodeCue],...
                 'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
             tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
+            visibleStims         = [holdButton selStim(itemID)];
         elseif delayPeriod > 0
-            % REMOVE fixation cue & PRESENT stimulus
+            % REMOVE wm fixation cue & PRESENT stimulus
             tFixCueOff(itemID,:) = toggleobject([wmFixCue selStim(itemID) photodiodeCue],...
                 'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
             tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
+            visibleStims         = [holdButton selStim(itemID)];
         else
-            % PRESENT stimulus
+            % REMOVE previous stimulus and present current stimulus
             tSampleOn(itemID,:) = toggleobject([selStim(itemID-1) selStim(itemID) photodiodeCue],...
                 'eventmarker', [selEvts(2*itemID)-2 selEvts(2*itemID)-1]);
             tSampleOff(itemID-1,:) = tSampleOn(itemID,:);
+            visibleStims         = [holdButton selStim(itemID)];
         end
         
         % CHECK fixation and hold maintenance for samplePeriod
@@ -222,12 +230,13 @@ while outcome < 0
             eventmarker([bhv.holdMaint bhv.fixMaint]);
         end
         
-        % CHECK if delayPeriod is 0
+        % CHECK if delayPeriod > 0
         if delayPeriod > 0
             % REMOVE stimulus & PRESENT WM fixation cue
             tSampleOff(itemID,:)  = toggleobject([wmFixCue selStim(itemID) photodiodeCue],...
                 'eventmarker', [selEvts(2*itemID) pic.fixOn]);
             tFixCueOn(itemID+1,:) = tSampleOff(itemID,:);
+            visibleStims          = [holdButton wmFixCue];
             
             % CHECK fixation and hold maintenance for delayPeriod
             ontarget = eyejoytrack(...
@@ -252,34 +261,36 @@ while outcome < 0
                 % Correctly held fixation & hold
                 eventmarker([bhv.holdMaint bhv.fixMaint]);
             end
-        elseif delayPeriod == 0 && itemID == Info.imgPerTrial
-            % REMOVE last stimulus
-             tSampleOff(itemID,:) = toggleobject(selStim(itemID),...
-                'eventmarker', selEvts(2*itemID));
         end
     end
     
-    % TRIAL finished successfully if all stims fixated correctly
+    % TRIAL finished successfully as all stims fixated correctly and no error
+    % This check is needed as 'break' only breaks the preceding for loop and
+    % not the while loop (which checks for outceom < 0)
     if outcome < 0
         if delayPeriod > 0
-            tFixCueOff(itemID+1,:) = toggleobject(wmFixCue,...
-                'eventmarker', pic.fixOff);
+            % MARK wmFixCue for removal
+            visibleStims = [holdButton wmFixCue];
+            event        = [bhv.respCorr pic.holdOff pic.fixOff rew.juice];
+        else
+            % MARK last stimuli for removal
+            visibleStims = [holdButton selStim(itemID)];
+            event        = [bhv.respCorr pic.holdOff selEvts(2*itemID) rew.juice];
         end
-        event   = [pic.holdOff bhv.respCorr rew.juice];
         outcome = err.respCorr;
     end
 end
 
-% SET trial outcome and remove all stimuli
+% SET trial outcome and remove all visible stimuli
 trialerror(outcome);
-tAllOff = toggleobject(1:16, 'status', 'off', 'eventmarker', event);
-
-% TRIAL end
-eventmarker(trl.stop);
-TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
-
-% TRIAL end ------------------------------------------------------------------------------
-% FOOTER start ---------------------------------------------------------------------------
+tAllOff = toggleobject([visibleStims photodiodeCue], 'eventmarker', event);
+if outcome == 0
+    if delayPeriod > 0
+        tFixCueOff(itemID+1,:) = tAllOff;
+    else
+        tSampleOff(itemID,:) = tAllOff;
+    end
+end
 
 % REWARD monkey if correct response given
 if outcome == err.holdNil
@@ -288,11 +299,7 @@ if outcome == err.holdNil
 elseif outcome == err.respCorr
     % CORRECT response; give reward, audCorr & good pause
     juiceConsumed = TrialRecord.Editable.rewardVol;
-    goodmonkey(reward,...
-        'juiceline',   rewardLine,...
-        'numreward',   rewardReps,...
-        'pausetime',   rewardRepsGap,...
-        'nonblocking', 1);
+    goodmonkey(reward,'juiceline', 1,'numreward', 1,'pausetime', 1, 'nonblocking', 1);
     toggleobject(audioCorr);
     idle(goodPause);
 else
@@ -300,6 +307,19 @@ else
     toggleobject(audioWrong);
     idle(badPause);
 end
+
+% TURN photodiode (and all stims) state to off at end of trial
+toggleobject(1:17, 'status', 'off');
+
+% TRIAL end
+eventmarker(trl.stop);
+TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
+
+% SEND check odd lines
+eventmarker(chk.linesOdd);
+
+% TRIAL end ------------------------------------------------------------------------------
+% FOOTER start ---------------------------------------------------------------------------
 
 % ASSIGN trial footer eventmarkers
 cTrial       = trl.trialShift       + TrialRecord.CurrentTrialNumber;
@@ -314,13 +334,33 @@ if isfield(Info, 'trialFlag')
 end
 
 % ASSIGN trial footer editable
-cGoodPause        = trl.edtShift + TrialRecord.Editable.goodPause;
-cBadPause         = trl.edtShift + TrialRecord.Editable.badPause;
-cTaskFixRadius    = trl.edtShift + TrialRecord.Editable.taskFixRadius;
-cCalFixRadius     = trl.edtShift + TrialRecord.Editable.calFixRadius;
-cCalFixInitPeriod = trl.edtShift + TrialRecord.Editable.calFixInitPeriod;
-cCalFixHoldPeriod = trl.edtShift + TrialRecord.Editable.calFixHoldPeriod;
-cRewardVol        = trl.edtShift + TrialRecord.Editable.rewardVol*1000;
+cGoodPause        = trl.shift + TrialRecord.Editable.goodPause;
+cBadPause         = trl.shift + TrialRecord.Editable.badPause;
+cTaskFixRadius    = trl.shift + TrialRecord.Editable.taskFixRadius;
+cCalFixRadius     = trl.shift + TrialRecord.Editable.calFixRadius;
+cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
+cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
+cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
+
+% PREPARE stim info to send in footer
+cFixID(1)  = trl.shift + Info.fixationImage01ID;
+cFixID(2)  = trl.shift + Info.fixationImage02ID;
+cFixID(3)  = trl.shift + Info.fixationImage03ID;
+cFixID(4)  = trl.shift + Info.fixationImage04ID;
+cFixID(5)  = trl.shift + Info.fixationImage05ID;
+cFixID(6)  = trl.shift + Info.fixationImage06ID;
+cFixID(7)  = trl.shift + Info.fixationImage07ID;
+cFixID(8)  = trl.shift + Info.fixationImage08ID;
+cFixID(9)  = trl.shift + Info.fixationImage09ID;
+cFixID(10) = trl.shift + Info.fixationImage10ID;
+
+for imgInd = 1:Info.imgPerTrial
+    % Fixation stimuli TaskObject starts from 8
+    cFixX(imgInd)  = trl.picPosShift + TaskObject.Position((stim1-1)+imgInd,1)*1000;
+    cFixY(imgInd)  = trl.picPosShift + TaskObject.Position((stim1-1)+imgInd,2)*1000;
+end
+
+cFixID = cFixID(1:Info.imgPerTrial);
 
 % FOOTER start marker
 eventmarker(trl.footerStart);
@@ -348,13 +388,37 @@ eventmarker(cRewardVol);
 % EDITABLE stop marker
 eventmarker(trl.edtStop);
 
+% STIM INFO start marker
+eventmarker(trl.stimStart);
+
+% SEND stim info - imageID, X position and Y position
+for imgIDSend = 1:Info.imgPerTrial
+    eventmarker(cFixID(imgIDSend));
+    eventmarker(cFixX(imgIDSend));
+    eventmarker(cFixY(imgIDSend));
+end
+
+% STIM INFO start marker
+eventmarker(trl.stimStop);
+
 % FOOTER end marker
 eventmarker(trl.footerStop);
 
 % SAVE to TrialRecord.user
-TrialRecord.User.juiceConsumed(trialNum)   = juiceConsumed;
-TrialRecord.User.responseCorrect(trialNum) = outcome;
-TrialRecord.User.trialFlag(trialNum)       = Info.trialFlag;
+TrialRecord.User.fixationImageID(trialNum,1)  = Info.fixationImage01ID;
+TrialRecord.User.fixationImageID(trialNum,2)  = Info.fixationImage02ID;
+TrialRecord.User.fixationImageID(trialNum,3)  = Info.fixationImage03ID;
+TrialRecord.User.fixationImageID(trialNum,4)  = Info.fixationImage04ID;
+TrialRecord.User.fixationImageID(trialNum,5)  = Info.fixationImage05ID;
+TrialRecord.User.fixationImageID(trialNum,6)  = Info.fixationImage06ID;
+TrialRecord.User.fixationImageID(trialNum,7)  = Info.fixationImage07ID;
+TrialRecord.User.fixationImageID(trialNum,8)  = Info.fixationImage08ID;
+TrialRecord.User.fixationImageID(trialNum,9)  = Info.fixationImage09ID;
+TrialRecord.User.fixationImageID(trialNum,10) = Info.fixationImage10ID;
+TrialRecord.User.imgPerTrial(trialNum)        = Info.imgPerTrial;
+TrialRecord.User.trialFlag(trialNum)          = Info.trialFlag;
+TrialRecord.User.responseCorrect(trialNum)    = outcome;
+TrialRecord.User.juiceConsumed(trialNum)      = juiceConsumed;
 
 % SAVE to Data.UserVars
 bhv_variable(...
@@ -363,9 +427,6 @@ bhv_variable(...
     'tFixAcq',       tFixAcq,       'tFixCueOff',    tFixCueOff,...
     'tSampleOn',     tSampleOn,     'tSampleOff',    tSampleOff,...
     'tAllOff',       tAllOff);
-
-% SEND check odd lines
-eventmarker(chk.linesOdd);
 
 % FOOTER end------------------------------------------------------------------------------
 % DASHBOARD (customize as required)-------------------------------------------------------

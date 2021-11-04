@@ -62,7 +62,6 @@ holdRadius       = TrialData.TaskObject.Attribute{1, 2}{1, 2};
 holdRadiusBuffer = 2;
 samplePeriod     = Info.samplePeriod;
 delayPeriod      = Info.delayPeriod;
-delayFixFlag     = Info.delayFixFlag;
 testPeriod       = Info.testPeriod;
 respPeriod       = Info.respPeriod;
 reward           = ml_rewardVol2Time(rewardVol);
@@ -214,9 +213,9 @@ while outcome < 0
     
     % CHECK hold and fixation in SAMPLE ON period
     ontarget = eyejoytrack(...
-        'releasetarget', holdButton,   holdRadius,...
-        '~touchtarget',  holdButton,   holdRadius + holdRadiusBuffer,...
-        'holdfix',       sampleImage, taskFixRadius,...
+        'releasetarget', holdButton, holdRadius,...
+        '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
+        'holdfix',       initFixCue, taskFixRadius,...
         samplePeriod);
     
     if ontarget(1) == 0
@@ -236,7 +235,7 @@ while outcome < 0
         eventmarker([bhv.holdMaint bhv.fixMaint]);
     end
     
-    % HANDLE sample removal and test presetation considering delayPeriod duration
+    % HANDLE sample removal and test presentation considering delayPeriod duration
     if delayPeriod == 0
         % REMOVE sample and PRESENT test and response buttons
         tSampleOff = toggleobject([sampleImage holdButton testImage sameButton diffButton photodiodeCue], 'eventmarker',...
@@ -282,13 +281,16 @@ while outcome < 0
                
     % WAIT for response in TEST ON period
     [chosenResp, ~, tBhvResp] = eyejoytrack(...
-        'touchtarget',  respOrder, holdRadius,...
-        '~touchtarget', holdButton,      holdRadius + holdRadiusBuffer,...
+        'touchtarget',  respOrder,  holdRadius,...
+        '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
         testPeriod);
     
     % CHECK if response given
     if sum(chosenResp) > 0
         eventmarker(bhv.respGiven);
+        
+        % RECORD reaction time
+        rt = tBhvResp - tTestRespOn;
     end
     
     % HANDLE situations where testPeriod < respPeriod
@@ -299,50 +301,53 @@ while outcome < 0
         
         % WAIT for response if TEST period < RESP period
         [chosenResp, ~, tBhvResp] = eyejoytrack(...
-            'touchtarget',  respOrder, holdRadius,...
-            '~touchtarget', holdButton,      holdRadius + holdRadiusBuffer,...
+            'touchtarget',  respOrder,  holdRadius,...
+            '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
             (respPeriod - testPeriod));
         
         % CHECK if response given
         if sum(chosenResp) > 0
             eventmarker(bhv.respGiven);
+            
+            % RECORD reaction time
+            rt = tBhvResp - tTestRespOn;
         end
+        event = [];
+    else
+        event = pic.testOff;
     end
     
-    % RECORD reaction time
-    rt = tBhvResp - tTestRespOn;
-    
+    % MARK the behavioral outcome
     if chosenResp(1) == 0 && chosenResp(2) == 0
         % Error if no response from monkey
-        event   = [bhv.respNil pic.choiceOff];
+        event   = [bhv.respNil event pic.choiceOff];
         outcome = err.respNil; break
     elseif chosenResp(1) == 0 && chosenResp(2) == 1
         % Error if monkey touched outside
-        event   = [bhv.holdOutside pic.choiceOff];
+        event   = [bhv.holdOutside event pic.choiceOff];
         outcome = err.holdOutside; break
     elseif Info.expectedResponse == 0
         % Correct response by monkey on ambigous/free-choice trial
-        event   = [bhv.respCorr pic.choiceOff rew.juice];
+        event   = [bhv.respCorr event pic.choiceOff rew.juice];
         outcome = err.respCorr; break
     elseif chosenResp(1) == Info.expectedResponse
         % Correct response by monkey
-        event   = [bhv.respCorr  pic.choiceOff rew.juice];
+        event   = [bhv.respCorr event pic.choiceOff rew.juice];
         outcome = err.respCorr; break   
     else
         % Wrong response by monkey
-        event   = [bhv.respWrong pic.choiceOff];
+        event   = [bhv.respWrong event pic.choiceOff];
         outcome = err.respWrong; break
     end
 end
 
 % SET trial outcome and remove all visible stimuli
 trialerror(outcome);
-if isnan(tTestOff) && ~isnan(tTestRespOn)
-    tAllOff  = toggleobject([visibleStims photodiodeCue], 'eventmarker', [event(1) pic.testOff event(2:end)]);
+tAllOff  = toggleobject([visibleStims photodiodeCue], 'eventmarker', event);
+if sum(visibleStims == testImage) > 0
     tTestOff = tAllOff;
-    tRespOff = tAllOff;
-else
-    tAllOff  = toggleobject([visibleStims photodiodeCue], 'eventmarker', event);
+end
+if sum(ismember(visibleStims, respOrder)) > 0    
     tRespOff = tAllOff;
 end    
 
@@ -397,13 +402,13 @@ cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
 cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
 cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
 
-% PREPARE stim info to send in editable
+% PREPARE stim info to send in footer
 cSampleID = trl.shift + Info.sampleImageID;
-cSampleX  = trl.picPosShift + TaskObject.Position(9,1)*1000;
-cSampleY  = trl.picPosShift + TaskObject.Position(9,2)*1000;
+cSampleX  = trl.picPosShift + TaskObject.Position(sampleImage,1)*1000;
+cSampleY  = trl.picPosShift + TaskObject.Position(sampleImage,2)*1000;
 cTestID   = trl.shift + Info.testImageID;
-cTestX    = trl.picPosShift + TaskObject.Position(10,1)*1000;
-cTestY    = trl.picPosShift + TaskObject.Position(10,2)*1000;
+cTestX    = trl.picPosShift + TaskObject.Position(testImage,1)*1000;
+cTestY    = trl.picPosShift + TaskObject.Position(testImage,2)*1000;
 
 % FOOTER start marker
 eventmarker(trl.footerStart);

@@ -18,27 +18,24 @@
 % OUTPUT
 % "conditionsFileName.txt" in the current directory
 %{
-% VERSION HISTORY
-% - 14-Jun-2019 - Thomas  - First implementation
-%                 Zhivago
-% - 09-Mar-2020 - Thomas  - Integrated calibration and validation blocks as block 1
-%                 Jhilik    and 2 respectively
-%                 Harish
-% - 22-Oct-2020 - Thomas  - Removed validation block, fixed info and other minor updates
-% - 29-Oct-2020 - Thomas  - Removed extra info
-% - 03-Nov-2021 - Thomas  - Reworked to include wmFix cue
-% ---------------------------------------------------------------------------------------
+VERSION HISTORY
+14-Jun-2019 - Thomas  - First implementation
+              Zhivago
+09-Mar-2020 - Thomas  - Integrated calibration and validation blocks as block 1
+              Jhilik    and 2 respectively
+              Harish
+22-Oct-2020 - Thomas  - Removed validation block, fixed info and other minor updates
+29-Oct-2020 - Thomas  - Removed extra info
+03-Nov-2021 - Thomas  - Reworked to include wmFix cue
 %}
 
 function ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, wmFixState)
-
 % OPEN the conditions .txt file for writing
 conditionsFile = fopen(conditionsFileName, 'w');
 
 % TIMING file name
 expTimingFile = timingFileName;
 calTimingFile ='calTiming';
-
 
 % PROPERTIES for static TaskObjects
 ptdSqrLoc       = [0 19];
@@ -56,8 +53,8 @@ if wmFixState == 1
     wmFixCueColor = initFixCueColor;
 end
 
-% STATIC TaskObjects
-photodiodeSqr  = sprintf('sqr(%s, %s, 1, %d, %d)', ptdSqrSize, ptdSqrColor, ptdSqrLoc(1), ptdSqrLoc(2));
+% STATIC TaskObjects (1 to 9)
+photodiodeCue  = sprintf('sqr(%s, %s, 1, %d, %d)', ptdSqrSize, ptdSqrColor, ptdSqrLoc(1), ptdSqrLoc(2));
 holdButton     = sprintf('crc(%s, %s, 1, %d, 0)', buttonSize, buttonColor, buttonLoc(1));
 initFixCue     = sprintf('crc(%s, %s, 1, 0, 0)', initFixCueSize, initFixCueColor);
 wmFixCue       = sprintf('crc(%s, %s, 1, 0, 0)', initFixCueSize, wmFixCueColor);
@@ -75,7 +72,7 @@ fprintf(conditionsFile, [...
     'TaskObject#8\t', 'TaskObject#9\t', 'TaskObject#10\t', 'TaskObject#11\n']);
 
 % WRITE CALIBRATION conditions - Block 1 -------------------------------------------------
-% DUMMY TaskObjects for calibration trial
+% DUMMY TaskObjects for calibration trial (10 and 11)
 sampleImageName = sdPairs{1,1};
 testImageName   = sdPairs{1,2};
 sampleImage     = sprintf('pic(%s, 0, 0)', sampleImageName);
@@ -85,17 +82,19 @@ testImage       = sprintf('pic(%s, 0, 0)', testImageName);
 fprintf(conditionsFile, [...
     '%d\t',        '%s\t',     '%d\t',     '%d\t',     '%s\t',...
     '%s\t',        '%s\t',     '%s\t',     '%s\t',     '%s\t',...
-    '%s\t',        '%s\t',     '%s\t',     '%s\t',     '%s\t',      '%s\n'],...
+    '%s\t',        '%s\t',     '%s\t',     '%s\t',     '%s\t',...
+    '%s\n'],...
     1,             info{1},    1,          1,          calTimingFile,...
-    photodiodeSqr, holdButton, initFixCue, wmFixCue,   calibCue,...
-    correctAudio,  wrongAudio, sameButton, diffButton, sampleImage, testImage);
+    photodiodeCue, holdButton, initFixCue, wmFixCue,   calibCue,...
+    correctAudio,  wrongAudio, sameButton, diffButton, sampleImage,...
+    testImage);
 
 % WRITE MAIN experiment conditions - Block 2 onward --------------------------------------
 % Increment 'block' by 1 as block 1 = calibration
 block = block + 1;
 
 for trialID = 1:length(sdPairs)
-    % VARIBLE TaskObjects
+    % VARIBLE TaskObjects for Same-Different trials (10 and 11)
     sampleImageName = sdPairs{trialID,1};
     testImageName   = sdPairs{trialID,2};
     sampleImage     = sprintf('pic(%s, 0, 0)', sampleImageName);
@@ -105,10 +104,12 @@ for trialID = 1:length(sdPairs)
     fprintf(conditionsFile, [...
         '%d\t',        '%s\t',        '%d\t',             '%d\t',         '%s\t',...
         '%s\t',        '%s\t',        '%s\t',             '%s\t',         '%s\t',...
-        '%s\t',        '%s\t',        '%s\t',             '%s\t',         '%s\t',      '%s\n'],...
+        '%s\t',        '%s\t',        '%s\t',             '%s\t',         '%s\t',...
+        '%s\n'],...
         trialID + 1,   info{trialID}, frequency(trialID), block(trialID), expTimingFile,...
-        photodiodeSqr, holdButton,    initFixCue,         wmFixCue,       calibCue,...
-        correctAudio,  wrongAudio,    sameButton,         diffButton,     sampleImage, testImage);
+        photodiodeCue, holdButton,    initFixCue,         wmFixCue,       calibCue,...
+        correctAudio,  wrongAudio,    sameButton,         diffButton,     sampleImage,...
+        testImage);
 end
 
 % CLOSE the conditions file

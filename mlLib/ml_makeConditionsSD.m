@@ -26,10 +26,11 @@ VERSION HISTORY
               Harish
 22-Oct-2020 - Thomas  - Removed validation block, fixed info and other minor updates
 29-Oct-2020 - Thomas  - Removed extra info
-03-Nov-2021 - Thomas  - Reworked to include wmFix cue
+03-Nov-2021 - Thomas  - Reworked to include stimFix cue, reduced holf brightness and 
+                        fixCue and calibCue size
 %}
 
-function ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, wmFixState)
+function ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, stimFixCueColorFlag)
 % OPEN the conditions .txt file for writing
 conditionsFile = fopen(conditionsFileName, 'w');
 
@@ -46,18 +47,18 @@ buttonSize      = '4';
 buttonColor     = '[0 0.33 0]';
 initFixCueSize  = '0.1';
 initFixCueColor = '[1 1 0]';
-wmFixCueColor   = '[0 0 0]';
+stimFixCueColor = '[0 0 0]';
 calibCueSize    = '0.5';
 calibCueColor   = '[0.5 0.5 0.5]';
-if wmFixState == 1
-    wmFixCueColor = initFixCueColor;
+if stimFixCueColorFlag == 1
+    stimFixCueColor = initFixCueColor;
 end
 
 % STATIC TaskObjects (1 to 9)
 photodiodeCue  = sprintf('sqr(%s, %s, 1, %d, %d)', ptdSqrSize, ptdSqrColor, ptdSqrLoc(1), ptdSqrLoc(2));
 holdButton     = sprintf('crc(%s, %s, 1, %d, 0)', buttonSize, buttonColor, buttonLoc(1));
 initFixCue     = sprintf('crc(%s, %s, 1, 0, 0)', initFixCueSize, initFixCueColor);
-wmFixCue       = sprintf('crc(%s, %s, 1, 0, 0)', initFixCueSize, wmFixCueColor);
+stimFixCue     = sprintf('crc(%s, %s, 1, 0, 0)', initFixCueSize, stimFixCueColor);
 calibCue       = sprintf('crc(%s, %s, 1, 0, 0)', calibCueSize, calibCueColor);
 sameButton     = sprintf('crc(%s, %s, 1, %d, %d)', buttonSize, buttonColor, buttonLoc(1), buttonLoc(2));
 diffButton     = sprintf('crc(%s, %s, 1, %d, -%d)', buttonSize, buttonColor, buttonLoc(1), buttonLoc(2));
@@ -66,17 +67,15 @@ wrongAudio     = 'snd(.\aud\incorrect)';
 
 % WRITE the first line of the conditions file (describes each tab delimited column)
 fprintf(conditionsFile, [...
-    'Condition\t',    'Info\t',         'Frequency\t',     'Block\t',...
-    'Timing File\t',  'TaskObject#1\t', 'TaskObject#2\t',  'TaskObject#3\t',...
-    'TaskObject#4\t', 'TaskObject#5\t', 'TaskObject#6\t',  'TaskObject#7\t',...
-    'TaskObject#8\t', 'TaskObject#9\t', 'TaskObject#10\t', 'TaskObject#11\n']);
+    'Condition\t',    'Info\t',         'Frequency\t',    'Block\t',        'Timing File\t',...
+    'TaskObject#1\t', 'TaskObject#2\t', 'TaskObject#3\t', 'TaskObject#4\t', 'TaskObject#5\t',...
+    'TaskObject#6\t', 'TaskObject#7\t', 'TaskObject#8\t', 'TaskObject#9\t', 'TaskObject#10\t',...
+    'TaskObject#11\n']);
 
 % WRITE CALIBRATION conditions - Block 1 -------------------------------------------------
 % DUMMY TaskObjects for calibration trial (10 and 11)
-sampleImageName = sdPairs{1,1};
-testImageName   = sdPairs{1,2};
-sampleImage     = sprintf('pic(%s, 0, 0)', sampleImageName);
-testImage       = sprintf('pic(%s, 0, 0)', testImageName);
+sampleImage     = sprintf('pic(%s, 0, 0)', sdPairs{1,1});
+testImage       = sprintf('pic(%s, 0, 0)', sdPairs{1,2});
 
 % PRINT to file
 fprintf(conditionsFile, [...
@@ -85,7 +84,7 @@ fprintf(conditionsFile, [...
     '%s\t',        '%s\t',     '%s\t',     '%s\t',     '%s\t',...
     '%s\n'],...
     1,             info{1},    1,          1,          calTimingFile,...
-    photodiodeCue, holdButton, initFixCue, wmFixCue,   calibCue,...
+    photodiodeCue, holdButton, initFixCue, stimFixCue, calibCue,...
     correctAudio,  wrongAudio, sameButton, diffButton, sampleImage,...
     testImage);
 
@@ -95,10 +94,8 @@ block = block + 1;
 
 for trialID = 1:length(sdPairs)
     % VARIBLE TaskObjects for Same-Different trials (10 and 11)
-    sampleImageName = sdPairs{trialID,1};
-    testImageName   = sdPairs{trialID,2};
-    sampleImage     = sprintf('pic(%s, 0, 0)', sampleImageName);
-    testImage       = sprintf('pic(%s, 0, 0)', testImageName);
+    sampleImage     = sprintf('pic(%s, 0, 0)', sdPairs{trialID,1});
+    testImage       = sprintf('pic(%s, 0, 0)', sdPairs{trialID,2});
     
     % PRINT to file
     fprintf(conditionsFile, [...
@@ -107,7 +104,7 @@ for trialID = 1:length(sdPairs)
         '%s\t',        '%s\t',        '%s\t',             '%s\t',         '%s\t',...
         '%s\n'],...
         trialID + 1,   info{trialID}, frequency(trialID), block(trialID), expTimingFile,...
-        photodiodeCue, holdButton,    initFixCue,         wmFixCue,       calibCue,...
+        photodiodeCue, holdButton,    initFixCue,         stimFixCue,     calibCue,...
         correctAudio,  wrongAudio,    sameButton,         diffButton,     sampleImage,...
         testImage);
 end

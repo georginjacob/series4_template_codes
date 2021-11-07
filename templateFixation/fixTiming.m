@@ -12,6 +12,8 @@ VERSION HISTORY
 - 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer and
                           accomodated code for delayPeriod of 0
 - 03-Nov-2021 - Thomas  - Updated to deal with wmFixCue
+- 05-Nov-2021 - Thomas  - wmFixCue renamed to generalized stimFixFlag, option to show fix
+                          throughout trial introduced.
 %}
 % HEADER start ---------------------------------------------------------------------------
 
@@ -36,16 +38,16 @@ editable(...
 goodPause        = 200;
 badPause         = 1000;
 taskFixRadius    = 10;
-calFixRadius     = 6;
+calFixRadius     = 8;
 calFixInitPeriod = 500;
-calFixHoldPeriod = 200;
+calFixHoldPeriod = 300;
 calFixRandFlag   = 1;
 rewardVol        = 0.2;
 
 % PARAMETERS relevant for task timing and hold/fix control
 holdInitPeriod   = Info.holdInitPeriod;
 fixInitPeriod    = Info.fixInitPeriod;
-fixHoldPeriod    = 200;
+fixHoldPeriod    = 300;
 holdRadius       = TrialData.TaskObject.Attribute{1, 2}{1, 2};
 holdRadiusBuffer = 2;
 samplePeriod     = Info.samplePeriod;
@@ -62,12 +64,15 @@ exp = TrialRecord.User.exp;
 trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
 
+% NUMBER of TaskObjects
+nTaskObjects  = 17;
+
 % POINTERS to TaskObjects
-photodiodeCue = 1;  holdButton = 2;  initFixCue = 3;  wmFixCue = 4;
-calibCue      = 5;  audioCorr  = 6;  audioWrong = 7;  stim1    = 8;
-stim2         = 9;  stim3      = 10; stim4      = 11; stim5    = 12;
-stim6         = 13; stim7      = 14; stim8      = 15; stim9    = 16;
-stim10        = 17;
+photodiodeCue = 1;  holdButton = 2;  initFixCue = 3;  stimFixCue = 4;
+calibCue      = 5;  audioCorr  = 6;  audioWrong = 7;  stim1      = 8;
+stim2         = 9;  stim3      = 10; stim4      = 11; stim5      = 12;
+stim6         = 13; stim7      = 14; stim8      = 15; stim9      = 16;
+stim10        = 17; 
 
 % GROUP TaskObjects and eventmarkers for easy indexing
 selStim = [stim1; stim2; stim3; stim4; stim5; stim6; stim7; stim8; stim9; stim10];
@@ -77,6 +82,15 @@ selEvts  = [...
     pic.stim5On; pic.stim5Off; pic.stim6On;  pic.stim6Off;...
     pic.stim7On; pic.stim7Off; pic.stim8On;  pic.stim8Off;...
     pic.stim9On; pic.stim9Off; pic.stim10On; pic.stim10Off];
+
+% HANDLE reordering of stimFixCue above or below stims
+if Info.stimFixCueAboveStimFlag
+    TaskObject.Zorder(stimFixCue) = 1;
+    TaskObject.Zorder(selStim) = 0;
+else
+    TaskObject.Zorder(stimFixCue) = 0;
+    TaskObject.Zorder(selStim) = 1;
+end
 
 % DECLARE select timing and reward variables as NaN
 tHoldButtonOn = NaN;
@@ -183,34 +197,37 @@ while outcome < 0
         eventmarker([bhv.holdMaint bhv.fixMaint]);
     end
     
-    % LOOP for presenting stim
+    % LOOP for presenting stim - here init fix cue is removed and delayFixCue is kept on
+    % till end of trials. The dynamics of visibility of delayFixCue are determined by
+    % variables Info.stimFixCueAboveStimFlag and the inherent color of stimFixCue as
+    % determined when creating conditions file
     for itemID = 1:Info.imgPerTrial
         % CHECK if first stim, if not then delayPeriod > 0
         if itemID == 1
-            % REMOVE init fixation cue & PRESENT stimulus
-            tFixCueOff(itemID,:) = toggleobject([initFixCue selStim(itemID) photodiodeCue],...
+            % REMOVE init fixation cue & PRESENT stimFixCue and stimulus
+            tFixCueOff(itemID,:) = toggleobject([initFixCue stimFixCue selStim(itemID) photodiodeCue],...
                 'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
             tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
-            visibleStims         = [holdButton selStim(itemID)];
+            visibleStims         = [holdButton stimFixCue selStim(itemID)];
         elseif delayPeriod > 0
-            % REMOVE wm fixation cue & PRESENT stimulus
-            tFixCueOff(itemID,:) = toggleobject([wmFixCue selStim(itemID) photodiodeCue],...
+            % PRESENT stimulus
+            tFixCueOff(itemID,:) = toggleobject([selStim(itemID) photodiodeCue],...
                 'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
             tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
-            visibleStims         = [holdButton selStim(itemID)];
+            visibleStims         = [holdButton stimFixCue selStim(itemID)];
         else
             % REMOVE previous stimulus and present current stimulus
             tSampleOn(itemID,:) = toggleobject([selStim(itemID-1) selStim(itemID) photodiodeCue],...
                 'eventmarker', [selEvts(2*itemID)-2 selEvts(2*itemID)-1]);
             tSampleOff(itemID-1,:) = tSampleOn(itemID,:);
-            visibleStims         = [holdButton selStim(itemID)];
+            visibleStims         = [holdButton stimFixCue selStim(itemID)];
         end
         
         % CHECK fixation and hold maintenance for samplePeriod
         ontarget = eyejoytrack(...
-            'releasetarget', holdButton,      holdRadius,...
-            '~touchtarget',  holdButton,      holdRadius + holdRadiusBuffer,...
-            'holdfix',       selStim(itemID), taskFixRadius,...
+            'releasetarget', holdButton, holdRadius,...
+            '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
+            'holdfix',       stimFixCue, taskFixRadius,...
             samplePeriod);
         
         if ontarget(1) == 0
@@ -233,29 +250,29 @@ while outcome < 0
         % CHECK if delayPeriod > 0
         if delayPeriod > 0
             % REMOVE stimulus & PRESENT WM fixation cue
-            tSampleOff(itemID,:)  = toggleobject([wmFixCue selStim(itemID) photodiodeCue],...
-                'eventmarker', [selEvts(2*itemID) pic.fixOn]);
+            tSampleOff(itemID,:)  = toggleobject([selStim(itemID) photodiodeCue],...
+                'eventmarker', [selEvts(2*itemID)]);
             tFixCueOn(itemID+1,:) = tSampleOff(itemID,:);
-            visibleStims          = [holdButton wmFixCue];
+            visibleStims          = [holdButton stimFixCue];
             
             % CHECK fixation and hold maintenance for delayPeriod
             ontarget = eyejoytrack(...
                 'releasetarget',holdButton, holdRadius,...
                 '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
-                'holdfix',      wmFixCue,   taskFixRadius,...
+                'holdfix',      stimFixCue,   taskFixRadius,...
                 delayPeriod);
             
             if ontarget(1) == 0
                 % Error if monkey released hold
-                event   = [bhv.holdNotMaint pic.holdOff pic.fixOff];
+                event   = [bhv.holdNotMaint pic.holdOff];
                 outcome = err.holdBreak; break
             elseif ontarget(2) == 1
                 % Error if monkey touched outside
-                event   = [bhv.holdOutside pic.holdOff pic.fixOff];
+                event   = [bhv.holdOutside pic.holdOff];
                 outcome = err.holdOutside; break
             elseif ontarget(3) == 0
                 % Error if monkey went outside fixRadius
-                event   = [bhv.fixNotMaint pic.holdOff pic.fixOff];
+                event   = [bhv.fixNotMaint pic.holdOff];
                 outcome = err.fixBreak; break
             else
                 % Correctly held fixation & hold
@@ -266,15 +283,15 @@ while outcome < 0
     
     % TRIAL finished successfully as all stims fixated correctly and no error
     % This check is needed as 'break' only breaks the preceding for loop and
-    % not the while loop (which checks for outceom < 0)
+    % not the while loop (which checks for outcome < 0)
     if outcome < 0
         if delayPeriod > 0
-            % MARK wmFixCue for removal
-            visibleStims = [holdButton wmFixCue];
-            event        = [bhv.respCorr pic.holdOff pic.fixOff rew.juice];
+            % MARK stimFixCue for removal
+            visibleStims = [holdButton stimFixCue];
+            event        = [bhv.respCorr pic.holdOff rew.juice];
         else
             % MARK last stimuli for removal
-            visibleStims = [holdButton selStim(itemID)];
+            visibleStims = [holdButton stimFixCue selStim(itemID)];
             event        = [bhv.respCorr pic.holdOff selEvts(2*itemID) rew.juice];
         end
         outcome = err.respCorr;
@@ -308,15 +325,16 @@ else
     idle(badPause);
 end
 
-% TURN photodiode (and all stims) state to off at end of trial
-toggleobject(1:17, 'status', 'off');
-
 % TRIAL end
 eventmarker(trl.stop);
 TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
 
 % SEND check odd lines
 eventmarker(chk.linesOdd);
+
+% TURN photodiode (and all stims) state to off at end of trial. Basically, all other
+% items will be off by now. This line is to clear photodiode explicitely.
+toggleobject(1:nTaskObjects, 'status', 'off');
 
 % TRIAL end ------------------------------------------------------------------------------
 % FOOTER start ---------------------------------------------------------------------------
@@ -327,6 +345,7 @@ cBlock       = trl.blockShift       + TrialRecord.CurrentBlock;
 cTrialWBlock = trl.trialWBlockShift + TrialRecord.CurrentTrialWithinBlock;
 cCondition   = trl.conditionShift   + TrialRecord.CurrentCondition;
 cTrialError  = trl.outcomeShift     + outcome;
+cExpResponse = exp.nan;
 cTrialFlag   = trl.typeShift;
 
 if isfield(Info, 'trialFlag')
@@ -336,8 +355,8 @@ end
 % ASSIGN trial footer editable
 cGoodPause        = trl.shift + TrialRecord.Editable.goodPause;
 cBadPause         = trl.shift + TrialRecord.Editable.badPause;
-cTaskFixRadius    = trl.shift + TrialRecord.Editable.taskFixRadius;
-cCalFixRadius     = trl.shift + TrialRecord.Editable.calFixRadius;
+cTaskFixRadius    = trl.shift + TrialRecord.Editable.taskFixRadius*10;
+cCalFixRadius     = trl.shift + TrialRecord.Editable.calFixRadius*10;
 cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
 cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
 cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
@@ -353,37 +372,32 @@ cFixID(7)  = trl.shift + Info.fixationImage07ID;
 cFixID(8)  = trl.shift + Info.fixationImage08ID;
 cFixID(9)  = trl.shift + Info.fixationImage09ID;
 cFixID(10) = trl.shift + Info.fixationImage10ID;
+cFixID     = cFixID(1:Info.imgPerTrial);
+cFixX      = nan(Info.imgPerTrial,1);
+cFixY      = nan(Info.imgPerTrial,1);
 
 for imgInd = 1:Info.imgPerTrial
     % Fixation stimuli TaskObject starts from 8
-    cFixX(imgInd)  = trl.picPosShift + TaskObject.Position((stim1-1)+imgInd,1)*1000;
-    cFixY(imgInd)  = trl.picPosShift + TaskObject.Position((stim1-1)+imgInd,2)*1000;
+    cFixX(imgInd) = trl.picPosShift + TaskObject.Position((stim1-1)+imgInd,1)*1000;
+    cFixY(imgInd) = trl.picPosShift + TaskObject.Position((stim1-1)+imgInd,2)*1000;
 end
-
-cFixID = cFixID(1:Info.imgPerTrial);
 
 % FOOTER start marker
 eventmarker(trl.footerStart);
 
+% INDICATE type of trial run
+eventmarker(trl.taskFix);
+
 % SEND footers
-eventmarker(cTrial);
-eventmarker(cBlock);
-eventmarker(cTrialWBlock);
-eventmarker(cCondition);
-eventmarker(cTrialError);
-eventmarker(cTrialFlag);
+eventmarker([cTrial cBlock cTrialWBlock cCondition cTrialError cExpResponse cTrialFlag]);
 
 % EDITABLE start marker
 eventmarker(trl.edtStart);
 
 % SEND editable in following order
-eventmarker(cGoodPause);
-eventmarker(cBadPause);
-eventmarker(cTaskFixRadius);
-eventmarker(cCalFixRadius);
-eventmarker(cCalFixInitPeriod);
-eventmarker(cCalFixHoldPeriod);
-eventmarker(cRewardVol);
+eventmarker([...
+    cGoodPause        cBadPause         cTaskFixRadius cCalFixRadius...
+    cCalFixInitPeriod cCalFixHoldPeriod cRewardVol]);
 
 % EDITABLE stop marker
 eventmarker(trl.edtStop);
@@ -393,9 +407,7 @@ eventmarker(trl.stimStart);
 
 % SEND stim info - imageID, X position and Y position
 for imgIDSend = 1:Info.imgPerTrial
-    eventmarker(cFixID(imgIDSend));
-    eventmarker(cFixX(imgIDSend));
-    eventmarker(cFixY(imgIDSend));
+    eventmarker([cFixID(imgIDSend) cFixX(imgIDSend) cFixY(imgIDSend)]);
 end
 
 % STIM INFO start marker

@@ -121,6 +121,10 @@ trl.start            = 1101;
 trl.stop             = 1102;
 trl.footerStart      = 1103;
 trl.footerStop       = 1104;
+trl.taskCalib        = 1105;
+trl.taskFix          = 1106;
+trl.taskSameDiff     = 1107;
+trl.taskSearch       = 1108;
 
 % TRL FOOTER SHIFT - add to actual value
 trl.trialShift       = 2000;

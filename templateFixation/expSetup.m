@@ -1,9 +1,10 @@
 clc; clear;
 
 % FILE names
-timingFileName     = 'fixTiming';
-conditionsFileName = 'fixConditions.txt';
-wmFixCueState      = 0; % If 1, then visible
+timingFileName          = 'fixTiming';
+conditionsFileName      = 'fixConditions.txt';
+stimFixCueColorFlag     = 0; % If 1, then yellow else black
+stimFixCueAboveStimFlag = 0; % If 1, show fix above stim, else below
 
 % IMAGE PAIRS - load filenames and make pairs
 imgFiles    = dir('.\stim\*.png');
@@ -73,7 +74,8 @@ infoFields =  {
     '''fixInitPeriod'',',        'fixInitPeriod'
     '''samplePeriod'',',         'samplePeriod'
     '''delayPeriod'',',          'delayPeriod'
-    '''delayFixFlag'',',         'wmFixCueState'
+    '''stimFixCueColorFlag'',',    'stimFixCueColorFlag'
+    '''stimFixCueAboveStimFlag'',', 'stimFixCueAboveStimFlag'
     };
 
 % TRIAL info
@@ -103,4 +105,4 @@ for trialID = 1:size(imgList,1)
 end
 
 % CREATE conditions file
-ml_makeConditionsFix(timingFileName, conditionsFileName, fixNames, info, frequency, block, wmFixCueState)
+ml_makeConditionsFix(timingFileName, conditionsFileName, fixNames, info, frequency, block, stimFixCueColorFlag)

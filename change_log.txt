@@ -1,6 +1,14 @@
 changeLog for series4 MonkeyLogic template codes - VisionLab, IISc
 maintained by - Georgin/Thomas
 
+07-11-2021 VERSION 6.0 - thomas/georgin
+	- searchTiming.m updated to latest spec (similar to sdTiming and fixTiming)
+    - all timing files not include eventmarker indicating task in trial footer
+	
+	mlLib
+	- ml_makeConditionsSearch.m updated to latest spec - changes similar to makeConditionsSD and Fix
+	- ml_loadEvents.m added events to indicated type pof task (trl.taskXXXX)
+
 01-11-2021 VERSION 6.0 - thomas/georgin
 	templateSD
 	- sdTiming.m updated to deal with delayPeriod == 0 and also with testOff ~= respPeriod. A new variable visibleStims is used to keep track of stimuli visible on screen (except ptd).

@@ -1,21 +1,16 @@
 clc; clear;
 
 % FILE names
-timingFileName     = 'sdTiming';
-conditionsFileName = 'sdConditions.txt';
-wmFixCueState      = 0; % If 1, then visible
+timingFileName          = 'sdTiming';
+conditionsFileName      = 'sdConditions.txt';
+stimFixCueColorFlag     = 0; % If 1, then yellow else black
+stimFixCueAboveStimFlag = 0; % If 1, show fix above stim, else below
 
 % IMAGE PAIRS - load filenames and make pairs
-imgFiles  = dir('.\stim\*.bmp');
+imgFiles  = dir('.\stim\*.png');
 numImages = length(imgFiles);
 samePairs = [1:numImages; 1:numImages]';
 diffPairs = [1:numImages; 100-(1:numImages)]';
-biasCorr  = lcm(length(diffPairs), length(samePairs));
-diffPairs = repmat(diffPairs, (biasCorr/length(diffPairs)), 1);
-samePairs = repmat(samePairs, (biasCorr/length(samePairs)), 1);
-
-samePairs = [samePairs; fliplr(samePairs)];
-diffPairs = [diffPairs; fliplr(diffPairs)];
 pairs     = [samePairs; diffPairs];
 
 % BLOCK creation
@@ -72,23 +67,23 @@ samplePeriod   = 400;
 delayPeriod    = 200;
 testPeriod     = 5000;
 respPeriod     = 5000;
-delayFixFlag   = wmFixCueState;
 
 % INFO fields
 infoFields =  {
-    '''sampleImageID'',',    'imgPairs(trialID,1)'
-    '''testImageID'',',      'imgPairs(trialID,2)'
-    '''sampleImageFile'',',  'sdPairs{trialID,1}'
-    '''testImageFile'',',    'sdPairs{trialID,2}'
-    '''expectedResponse'',', 'expectedResponse(trialID,1)'
-    '''trialFlag'',',        'trialFlag(trialID,1)'
-    '''holdInitPeriod'',',   'holdInitPeriod'
-    '''fixInitPeriod'',',    'fixInitPeriod'
-    '''samplePeriod'',',     'samplePeriod'
-    '''delayPeriod'',',      'delayPeriod'
-    '''testPeriod'',',       'testPeriod'
-    '''respPeriod'',',       'respPeriod'
-    '''delayFixFlag'',',     'wmFixCueState'
+    '''sampleImageID'',',           'imgPairs(trialID,1)'
+    '''testImageID'',',             'imgPairs(trialID,2)'
+    '''sampleImageFile'',',         'sdPairs{trialID,1}'
+    '''testImageFile'',',           'sdPairs{trialID,2}'
+    '''expectedResponse'',',        'expectedResponse(trialID,1)'
+    '''trialFlag'',',               'trialFlag(trialID,1)'
+    '''holdInitPeriod'',',          'holdInitPeriod'
+    '''fixInitPeriod'',',           'fixInitPeriod'
+    '''samplePeriod'',',            'samplePeriod'
+    '''delayPeriod'',',             'delayPeriod'
+    '''testPeriod'',',              'testPeriod'
+    '''respPeriod'',',              'respPeriod'
+    '''stimFixCueColorFlag'',',     'stimFixCueColorFlag'
+    '''stimFixCueAboveStimFlag'',', 'stimFixCueAboveStimFlag'
     };
 
 % TRIAL info
@@ -118,4 +113,4 @@ for trialID = 1:length(imgPairs)
 end
 
 %% CREATE conditions file
-ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, wmFixCueState)     
+ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, stimFixCueColorFlag)     

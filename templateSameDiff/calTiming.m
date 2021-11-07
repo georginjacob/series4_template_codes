@@ -42,9 +42,9 @@ editable(...
 goodPause        = 200;
 badPause         = 1000;
 taskFixRadius    = 10;
-calFixRadius     = 6;
+calFixRadius     = 8;
 calFixInitPeriod = 500;
-calFixHoldPeriod = 200;
+calFixHoldPeriod = 300;
 calFixRandFlag   = 1;
 rewardVol        = 0.2;
 
@@ -256,8 +256,8 @@ end
 % ASSIGN trial footer editable
 cGoodPause        = trl.shift + TrialRecord.Editable.goodPause;
 cBadPause         = trl.shift + TrialRecord.Editable.badPause;
-cTaskFixRadius    = trl.shift + TrialRecord.Editable.taskFixRadius;
-cCalFixRadius     = trl.shift + TrialRecord.Editable.calFixRadius;
+cTaskFixRadius    = trl.shift + TrialRecord.Editable.taskFixRadius*10;
+cCalFixRadius     = trl.shift + TrialRecord.Editable.calFixRadius*10;
 cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
 cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
 cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
@@ -272,30 +272,22 @@ for calLocsR = 1:size(calLocs,1)
     end
 end
 
-% FOOTER start 
+% FOOTER start marker
 eventmarker(trl.footerStart);
 
-% FOOTER information
-eventmarker(cTrial);     
-eventmarker(cBlock);     
-eventmarker(cTrialWBlock);
-eventmarker(cCondition); 
-eventmarker(cTrialError);
-eventmarker(cExpResponse);
-eventmarker(cTrialFlag);
+% INDICATE type of trial run
+eventmarker(trl.taskCalib);
+
+% SEND footers
+eventmarker([cTrial cBlock cTrialWBlock cCondition cTrialError cExpResponse cTrialFlag]);      
 
 % EDITABLE start marker
 eventmarker(trl.edtStart);
 
 % SEND editable in following order
-eventmarker(cGoodPause); 
-eventmarker(cBadPause); 
-eventmarker(cTaskFixRadius);
-eventmarker(cCalFixRadius);
-eventmarker(cCalFixInitPeriod); 
-eventmarker(cCalFixHoldPeriod);
-eventmarker(cRewardVol);
-eventmarker(cCalLocs);
+eventmarker([...
+    cGoodPause        cBadPause         cTaskFixRadius cCalFixRadius...
+    cCalFixInitPeriod cCalFixHoldPeriod cRewardVol]);
 
 % EDITABLE stop marker
 eventmarker(trl.edtStop);
@@ -309,12 +301,10 @@ eventmarker(cCalLocs);
 % STIM INFO start marker
 eventmarker(trl.stimStop);
 
-% FOOTER end 
+% FOOTER end marker
 eventmarker(trl.footerStop);
 
 % SAVE to TrialRecord.user
-TrialRecord.User.sampleID(trialNum)         = NaN;
-TrialRecord.User.testID(trialNum)           = NaN;
 TrialRecord.User.trialFlag(trialNum)        = NaN;
 TrialRecord.User.expectedResponse(trialNum) = NaN;
 TrialRecord.User.chosenResponse(trialNum)   = NaN;

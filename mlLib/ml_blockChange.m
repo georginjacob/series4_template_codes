@@ -13,8 +13,7 @@
 % ----------------------------------------------------------------------------------------
 
 function nextBlock = ml_blockChange(TrialRecord)
-
-% SELECT first block----------------------------------------------------------------------
+% SELECT first block
 if TrialRecord.CurrentTrialNumber == 1
     % ADD blockList to TrialRecord
     TrialRecord.User.blockList = sort(TrialRecord.BlocksSelected);
@@ -32,7 +31,7 @@ if TrialRecord.CurrentTrialNumber == 1
     end
 end
 
-% RERUN previous block if CALIB block run manually----------------------------------------
+% RERUN previous block if CALIB block run manually
 if length(TrialRecord.BlockOrder) > 1 && TrialRecord.BlockOrder(end) == 1
     temp            = TrialRecord.BlockOrder;
     temp(temp == 1) = [];
@@ -40,7 +39,7 @@ if length(TrialRecord.BlockOrder) > 1 && TrialRecord.BlockOrder(end) == 1
     return
 end
 
-% SELECT next block if non-CALIB block previously run-------------------------------------
+% SELECT next block if non-CALIB block previously run
 if isempty(TrialRecord.User.blockList)
     % NO more blocks to run (-1 quits the exp straight to summary screen)
     nextBlock = -1;

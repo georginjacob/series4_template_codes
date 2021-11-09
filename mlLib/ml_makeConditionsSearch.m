@@ -1,29 +1,30 @@
-% ml_makeConditionsSearch.m - Vision Lab, IISc
+% MAKE CONDITIONS PRESENT-ABSENT SEARCH - NIMH MonkeyLogic - Vision Lab, IISc
 % ----------------------------------------------------------------------------------------
 % Creates the condition file (*.txt) in the format readable by MonkeyLogic 2. This file is
 % then loaded in the GUI, which in turn loads all taskobjects required to run the
 % Present-Absent visual search template experiment.
 %
 % INPUTS
-%
-% timingFileName     - the name of the timing file (extension not required).
-% conditionsFileName - the name of the conditions file (*.txt).
-% tdPairs            - file names (without extension) of the stimuli used in each trial
-%                      (target and distractor stimuli).
-% info               - text string containing variable names followed by variable values
-%                      that can be accessed in the timing file (eg:'text','ab','num',1).
-% frequency          - the repetitions required for each condition to counter-balance.
-% block              - the block ID for each condition.
+%   timingFileName      - the name of the timing file (extension not required).
+%   conditionsFileName  - the name of the conditions file (*.txt).
+%   tdPairs             - file names (without extension) of the stimuli used in each trial
+%                         (target and distractor stimuli).
+%   info                - text string containing variable names followed by variable values
+%                         that can be accessed in the timing file (eg:'text','ab','num',1).
+%   frequency           - the repetitions required for each condition to counter-balance.
+%   block               - the block ID for each condition.
+%   stimFixCueColorFlag - if 1, stimFixCue visible (same as initFixCue), else black.
 %
 % OUTPUT
+%   "conditionsFileName.txt" in the current directory
 %
-% "conditionsFileName.txt" in the current directory
+% VERSION HISTORY
 %{
-VERSION HISTORY
 16-Feb-2021 - Thomas  - First implementation (2x2 array, simple search)
 06-Nov-2021 - Thomas  - Reworked to include stimFix cue, reduced holf brightness and 
                         fixCue and calibCue size
 %}
+% ----------------------------------------------------------------------------------------
 
 function ml_makeConditionsSearch(timingFileName, conditionsFileName, tdPairs, info, frequency, block, stimFixCueColorFlag)
 % OPEN the conditions .txt file for writing

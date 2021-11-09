@@ -15,9 +15,12 @@
 % ----------------------------------------------------------------------------------------
 
 function  fileContents = ml_getFileContents(fileName)
-
+% OPEN the file
 filePointer   = fopen(fileName, 'r');
-fileContents  = fread(filePointer);
-fclose(filePointer);
 
+% READ file contents
+fileContents  = fread(filePointer);
+
+% CLOSE opened file
+fclose(filePointer);
 end

@@ -21,25 +21,28 @@ function eventName = ml_getEventName(eventNumber)
 % LOAD events into varible 'events'
 [event.err, event.pic, event.aud, event.bhv,...
     event.rew, event.exp, event.trl, event.check, event.ascii] = ml_loadEvents();
+
 % CONVERT the struct 'event' to its constituent fields and values
 eventCell = struct2cell(event);
 
+% FIND the eventName for eventNumber inputs
 for eventInd = 1:length(eventNumber)
     eventVal = eventNumber(eventInd);
     
-    % REDUCE any xxShift eventmarker to base value such that event code name can be allotted
+    % REDUCE any xxShift eventmarker to base value such that
+    % event code name can be allotted
     if eventVal > 1999 && eventVal < 6000
-        eventVal = 2000;
+        eventVal = 2000; % trl.trialShift 
     elseif eventVal > 5999  && eventVal < 6500
-        eventVal = 6000;
+        eventVal = 6000; % trl.blockShift
     elseif eventVal > 6499  && eventVal < 7000
-        eventVal = 6500;
+        eventVal = 6500; % trl.trialWBlockShift
     elseif eventVal > 6999  && eventVal < 8000
-        eventVal = 7000;
+        eventVal = 7000; % trl.conditionShift 
     elseif eventVal > 7999  && eventVal < 8500
-        eventVal = 8000;
+        eventVal = 8000; % trl.typeShift  
     elseif eventVal > 8499  && eventVal < 8510
-        eventVal = 8500;
+        eventVal = 8500; % trl.outcomeShift 
     end
     
     % SEARCH across cell of structs to find a match

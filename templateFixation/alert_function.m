@@ -86,7 +86,7 @@ switch hook
     case 'trial_end'
         if TrialRecord.User.mlPcFlag
             % STORE iScan.UserData at trial end
-            serialDataNum = nan(size(iScan.UserData,1),6);
+            serialDataNum = nan(size(iScan.UserData,1),12);
             
             % NOTE: removing this for loop doesn't work for some reason
             for i = 1:length(iScan.UserData)

@@ -1,26 +1,25 @@
-% ml_makeConditionsFix.m - Vision Lab, IISc
+% MAKE CONDITIONS FIXATION - NIMH MonkeyLogic - Vision Lab, IISc
 % ----------------------------------------------------------------------------------------
 % Creates the condition file (*.txt) in the format readable by MonkeyLogic 2. This file is
 % then loaded in the GUI, which in turn loads all taskobjects required to run the
 % Same Diff template experiment.
 %
 % INPUTS
-%
-% timingFileName     - the name of the timing file (extension not required).
-% conditionsFileName - the name of the conditions file (*.txt).
-% sdPairs            - file names (without extension) of the stimuli used in each trial
-%                      (sample and test stimuli).
-% info               - text string containing variable names followed by variable values
-%                      that can be accessed in the timing file (eg:'text','ab','num',1).
-% frequency          - the repetitions required for each condition to counter-balance.
-% block              - the block ID for each condition.
-% wmFixState         - if 1, wmFixCue visible, else black.
+%   timingFileName      - the name of the timing file (extension not required).
+%   conditionsFileName  - the name of the conditions file (*.txt).
+%   sdPairs             - file names (without extension) of the stimuli used in each trial
+%                         (sample and test stimuli).
+%   info                - text string containing variable names followed by variable values
+%                         that can be accessed in the timing file (eg:'text','ab','num',1).
+%   frequency           - the repetitions required for each condition to counter-balance.
+%   block               - the block ID for each condition.
+%   stimFixCueColorFlag - if 1, stimFixCue visible (same as initFixCue), else black.
 %
 % OUTPUT
+%   "conditionsFileName.txt" in the current directory
 %
-% "conditionsFileName.txt" in the current directory
+% VERSION HISTORY
 %{
-VERSION HISTORY
 14-Jun-2019 - Thomas  - First implementation
               Zhivago
 09-Mar-2020 - Thomas  - Integrated calibration and validation blocks as block 1
@@ -33,6 +32,7 @@ VERSION HISTORY
 03-Nov-2021 - Thomas  - Reworked to include stimFix cue, reduced holf brightness and 
                         fixCue and calibCue size
 %}
+% ----------------------------------------------------------------------------------------
 
 function ml_makeConditionsFix(timingFileName, conditionsFileName, fixNames, info, frequency, block, stimFixCueColorFlag)
 % OPEN the conditions .txt file for writing
@@ -75,7 +75,7 @@ fprintf(conditionsFile, [...
     'TaskObject#11\t', 'TaskObject#12\t', 'TaskObject#13\t', 'TaskObject#14\t', 'TaskObject#15\t',...
     'TaskObject#16\t', 'TaskObject#17\n']);
 
-% WRITE CALIBRATION conditions - Block 1 -------------------------------------------------
+%% WRITE CALIBRATION conditions - Block 1
 % DUMMY TaskObjects for calibration trial (8 to 17)
 fixationImage01 = sprintf('pic(%s, 0, 0)', fixNames{1,1});
 fixationImage02 = sprintf('pic(%s, 0, 0)', fixNames{1,2});
@@ -101,7 +101,7 @@ fprintf(conditionsFile, [...
     fixationImage04, fixationImage05, fixationImage06, fixationImage07, fixationImage08,...
     fixationImage09, fixationImage10);
 
-% WRITE MAIN experiment conditions - Block 2 onward --------------------------------------
+%% WRITE MAIN experiment conditions - Block 2 onward
 % Increment 'block' by 1 as block 1 = calibration
 block = block + 1;
 

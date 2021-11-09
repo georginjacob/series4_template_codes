@@ -1,24 +1,25 @@
-% ml_makeConditionsSD.m - Vision Lab, IISc
+% MAKE CONDITIONS SAME-DIFFERENT - NIMH MonkeyLogic - Vision Lab, IISc
 % ----------------------------------------------------------------------------------------
 % Creates the condition file (*.txt) in the format readable by MonkeyLogic 2. This file is
 % then loaded in the GUI, which in turn loads all taskobjects required to run the
 % Same Diff template experiment.
 %
 % INPUTS
-% timingFileName     - the name of the timing file (extension not required).
-% conditionsFileName - the name of the conditions file (*.txt).
-% sdPairs            - file names (without extension) of the stimuli used in each trial
-%                      (sample and test stimuli).
-% info               - text string containing variable names followed by variable values
-%                      that can be accessed in the timing file (eg:'text','ab','num',1).
-% frequency          - the repetitions required for each condition to counter-balance.
-% block              - the block ID for each condition.
-% wmFixState         - if 1, wmFixCue visible, else black.
+%   timingFileName      - the name of the timing file (extension not required).
+%   conditionsFileName  - the name of the conditions file (*.txt).
+%   sdPairs             - file names (without extension) of the stimuli used in each trial
+%                         (sample and test stimuli).
+%   info                - text string containing variable names followed by variable values
+%                         that can be accessed in the timing file (eg:'text','ab','num',1).
+%   frequency           - the repetitions required for each condition to counter-balance.
+%   block               - the block ID for each condition.
+%   stimFixCueColorFlag - if 1, stimFixCue visible (same as initFixCue), else black.
 %
 % OUTPUT
-% "conditionsFileName.txt" in the current directory
+%   "conditionsFileName.txt" in the current directory
+%
+% VERSION HISTORY
 %{
-VERSION HISTORY
 14-Jun-2019 - Thomas  - First implementation
               Zhivago
 09-Mar-2020 - Thomas  - Integrated calibration and validation blocks as block 1
@@ -29,6 +30,7 @@ VERSION HISTORY
 03-Nov-2021 - Thomas  - Reworked to include stimFix cue, reduced holf brightness and 
                         fixCue and calibCue size
 %}
+% ----------------------------------------------------------------------------------------
 
 function ml_makeConditionsSD(timingFileName, conditionsFileName, sdPairs, info, frequency, block, stimFixCueColorFlag)
 % OPEN the conditions .txt file for writing
@@ -42,7 +44,7 @@ calTimingFile ='calTiming';
 ptdSqrLoc       = [0 19];
 ptdSqrSize      = '[3.0 2.5]';
 ptdSqrColor     = '[1 1 1]';
-buttonLoc       = [20 10]; % [holdButtonX/respButtonX respButtonY]
+buttonLoc       = [20 10]; % [holdButtonX/respButtonX, respButtonY]
 buttonSize      = '4';
 buttonColor     = '[0 0.33 0]';
 initFixCueSize  = '0.1';
@@ -72,7 +74,7 @@ fprintf(conditionsFile, [...
     'TaskObject#6\t', 'TaskObject#7\t', 'TaskObject#8\t', 'TaskObject#9\t', 'TaskObject#10\t',...
     'TaskObject#11\n']);
 
-% WRITE CALIBRATION conditions - Block 1 -------------------------------------------------
+%% WRITE CALIBRATION conditions - Block 1 
 % DUMMY TaskObjects for calibration trial (10 and 11)
 sampleImage     = sprintf('pic(%s, 0, 0)', sdPairs{1,1});
 testImage       = sprintf('pic(%s, 0, 0)', sdPairs{1,2});
@@ -88,7 +90,7 @@ fprintf(conditionsFile, [...
     correctAudio,  wrongAudio, sameButton, diffButton, sampleImage,...
     testImage);
 
-% WRITE MAIN experiment conditions - Block 2 onward --------------------------------------
+%% WRITE MAIN experiment conditions - Block 2 onward 
 % Increment 'block' by 1 as block 1 = calibration
 block = block + 1;
 

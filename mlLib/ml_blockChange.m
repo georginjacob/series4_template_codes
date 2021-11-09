@@ -1,4 +1,4 @@
-% ml_blockChange.m BLOCK CHANGE function for Monkeylogic - Vision Lab, IISc
+% BLOCK CHANGE function - NIMH MonkeyLogic - Vision Lab, IISc
 % ----------------------------------------------------------------------------------------
 % Selects the next block to run randomly from selected blocks in ML GUI. Runs calibration
 % block if available, else picks random block for first trial. Thereafter, selects random
@@ -7,8 +7,10 @@
 % calibration block run manually).
 %
 % VERSION HISTORY
+%{
+14-Sep-2020 - Thomas  - First implementation
+%}
 % ----------------------------------------------------------------------------------------
-% - 14-Sep-2020 - Thomas  - First implementation
 
 function nextBlock = ml_blockChange(TrialRecord)
 

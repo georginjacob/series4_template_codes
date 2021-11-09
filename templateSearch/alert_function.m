@@ -13,10 +13,12 @@ function alert_function(hook,MLConfig,TrialRecord)
 % To make this alert_function executed, turn on the alert button on the
 % task panel of the main menu.
 %
-% % NOTE - save this file as alert_function eith in exp folder.
+% % NOTE - save this file as alert_function.m in local folder when using.
 %
 % VERSION HISTORY
 % - 14-Oct-2020 - Thomas  - First version
+% - 08-Nov-2021 - Thomas  - Added clearing of iScan serialport object in
+%                           task_aborted hook
 % ----------------------------------------------------------------------------------------
 
 % ENSURE path to matlab internal serialport function is at top of MATLAB search path.
@@ -30,17 +32,22 @@ global iScan timeStamp apitoken
 switch hook
     case 'task_start'
         % When the task starts by '[Space] Start' from the pause menu
-        % INIT exp and set flags in TrialRecord
+        
+        % INITIALIZE the experiment and set flags in TrialRecord
         TrialRecord = ml_initExp(TrialRecord, MLConfig);
         
         if TrialRecord.User.mlPcFlag
             % OPEN serial port to read and save IScan ASCII serial data at 120Hz
             iScan = serialport('COM1', 115200);
-            configureTerminator(iScan,10)
+            configureTerminator(iScan,10);
+            
             % READ a single ASCII string from IScan to get rid of incomplete first package
             % that happens if serialport object starts reading in between terminators. Now
             % ml_readSerialData will have complete strings read.
-            readline(iScan)
+            readline(iScan);
+            
+            % SET the iScan object to append each received datastream to iScan.UserData
+            % using the following function
             configureCallback(iScan,"terminator",@ml_readSerialData)
             disp('[UPDATE] - opened serialport session');
         end
@@ -80,10 +87,12 @@ switch hook
         if TrialRecord.User.mlPcFlag
             % STORE iScan.UserData at trial end
             serialDataNum = nan(size(iScan.UserData,1),6);
-            % removing this for loop doesn't work for some reason
+            
+            % NOTE: removing this for loop doesn't work for some reason
             for i = 1:length(iScan.UserData)
                 serialDataNum(i,:) = str2num(iScan.UserData(i));
             end
+            
             TrialRecord.User.serialData{TrialRecord.CurrentTrialNumber} = serialDataNum;
             TrialRecord.User.timeStamp{TrialRecord.CurrentTrialNumber}  = timeStamp;
         end
@@ -92,10 +101,11 @@ switch hook
         
     case 'task_end'
         % When '[q] Quit' is selected in the pause menu or the task stops with an error
+        
         if ~isnan(TrialRecord.User.recordNetcamStartTime)
             % STOP netCam recordings (requires watchtower server running and
             % cameras to be manually bound on netcam PC, recording must be going on)
-            [outcome] = ml_stopNetcamRecord(apitoken);  
+            [outcome] = ml_stopNetcamRecord(apitoken);
             if outcome
                 disp('[UPDATE] - stopped netcam recording');
             else
@@ -103,6 +113,7 @@ switch hook
             end
         end
         
+        % CLEAR serialport object for IScan at end of experiment
         if TrialRecord.User.mlPcFlag && exist('iScan','var')
             configureCallback(iScan, "off");
             delete(iScan)
@@ -112,7 +123,8 @@ switch hook
         
     case 'task_aborted'
         % In case that the task stops with an error. The 'task_end' hook will follow.
-                
+        
+        % CLEAR serialport object for IScan if task aborted with error
         if TrialRecord.User.mlPcFlag && exist('iScan','var')
             configureCallback(iScan, "off");
             delete(iScan)

@@ -1,3 +1,16 @@
+% INIT EXPERIMENT - NIMH MonkeyLogic - Vision Lab, IISc
+% ----------------------------------------------------------------------------------------
+% Check if monkey names are valid ('Test' can also be used) and then store eventcodes and
+% files used to run the task into TrialRecord. Then ask user if want to start netcam
+% recording and send header to ecube system.
+%
+% VERSION HISTORY
+%{
+14-Oct-2020 - Thomas  - First version
+08-Nov-2021 - Thomas  - Commented
+%}
+% ----------------------------------------------------------------------------------------
+
 function TrialRecord = ml_initExp(TrialRecord, MLConfig)
 
 % CHECK if correct monkey name is entered-------------------------------------------------
@@ -6,8 +19,10 @@ if strcmpi(MLConfig.SubjectName, 'didi') ~= 1 &&...
         strcmpi(MLConfig.SubjectName, 'coco') ~= 1 &&...
         strcmpi(MLConfig.SubjectName, 'cocochacha') ~= 1 &&...
         strcmpi(MLConfig.SubjectName, 'chacha') ~= 1 &&...
+        strcmpi(MLConfig.SubjectName, 'mama') ~= 1 &&...
+        strcmpi(MLConfig.SubjectName, 'pepe') ~= 1 &&...
         strcmpi(MLConfig.SubjectName, 'test') ~= 1
-    error('[ERROR] - Monkey name is incorrect. It can only be: DiDi, JuJu, CoCo, CoCoChaCha or ChaCha!');
+    error('[ERROR] - Monkey name is incorrect. It can only be: DiDi, JuJu, CoCo, CoCoChaCha, ChaCha, PePe, MaMa or Test!');
 end
 
 % POPULATE TrialRecord with event codes---------------------------------------------------

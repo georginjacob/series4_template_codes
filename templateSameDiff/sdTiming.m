@@ -4,27 +4,29 @@
 % Provides two touch button on the right side (from subjects' POV) as responses:
 %  - Top button for 'same' response, and
 %  - Bottom button for 'diff' response.
+%
+% VERSION HISTORY
 %{
-VERSION HISTORY
-- 14-Jun-2019 - Thomas  - First implementation
-                Zhivago
-- 03-Feb-2020 - Harish  - Added fixation contingency to hold and sample on/off period
-                        - Added serial data read and store
-                        - Added trial break when dragging hand
-- 07-Mar-2020 - Thomas  - Added separation of hold and fixation error types
-                Georgin - Flipped button order for JuJu
-                        - Sending footer information as eventmarker()
-                        - Dashboard outsourced to function fillDashboard()
-- 10-Aug-2020 - Thomas  - Removed bulk adding of variables to TrialRecord.User
-                        - Simplified general code structure, specifically on errors
-- 14-Sep-2020 - Thomas  - General changes to code structure to improve legibilty
-- 14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
-- 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
-- 26-Oct-2021 - Thomas  - Included tRespOff and eventmarker to indicated response given by
-                          monkey. Also updated handling testPeriod < respPeriod
-- 03-Nov-2021 - Thomas  - Included wmFixCue TaskObject in conditions file and task
-- 05-Nov-2021 - Thomas  - wmFixCue renamed to generalized stimFixFlag, option to show fix
-                          throughout trial introduced.
+14-Jun-2019 - Thomas  - First implementation
+              Zhivago
+03-Feb-2020 - Harish  - Added fixation contingency to hold and sample on/off period
+                      - Added serial data read and store
+                      - Added trial break when dragging hand
+07-Mar-2020 - Thomas  - Added separation of hold and fixation error types
+              Georgin - Flipped button order for JuJu
+                      - Sending footer information as eventmarker()
+                      - Dashboard outsourced to function fillDashboard()
+10-Aug-2020 - Thomas  - Removed bulk adding of variables to TrialRecord.User
+                      - Simplified general code structure, specifically on errors
+14-Sep-2020 - Thomas  - General changes to code structure to improve legibilty
+14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
+31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
+26-Oct-2021 - Thomas  - Included tRespOff and eventmarker to indicated response given by
+                        monkey. Also updated handling testPeriod < respPeriod
+03-Nov-2021 - Thomas  - Included wmFixCue TaskObject in conditions file and task
+05-Nov-2021 - Thomas  - wmFixCue renamed to generalized stimFixFlag, option to show fix
+              Georgin   throughout trial introduced.
+                                        
 %}
 
 % HEADER start ---------------------------------------------------------------------------
@@ -79,7 +81,7 @@ trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
 
 % NUMBER of TaskObjects
-nTaskObjects  = 11;
+nTaskObjects  = length(TaskObject);
 
 % POINTERS to TaskObjects
 photodiodeCue = 1; 
@@ -420,7 +422,7 @@ cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
 cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
 cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
 
-% PREPARE stim info to send in footer
+% PREPARE stim info - sets of stim ID, stimPosX and stimPosY to transmit
 cSampleID = trl.shift + Info.sampleImageID;
 cSampleX  = trl.picPosShift + TaskObject.Position(sampleImage,1)*1000;
 cSampleY  = trl.picPosShift + TaskObject.Position(sampleImage,2)*1000;

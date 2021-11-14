@@ -2,21 +2,23 @@
 % ----------------------------------------------------------------------------------------
 % Presents a set of calibration points where animal has to fixate while pressing the hold
 % button. Breaking of fixation/hold or touch outside of hold button will abort the trial.
+%
+% VERSION HISTORY
 %{
-VERSION HISTORY
-- 14-Jun-2019 - Thomas  - First implementation
-                Zhivago 
-- 03-Feb-2020 - Harish  - Added fixation contingency to sample on/off period
-                          Added serial data read and store
-                          Added touching outside hold buttons breaks trial
-- 10-Aug-2020 - Thomas  - Removed bulk adding of variables to TrialRecord.User
-                        - Simplified general code structure, specifically on errors
-- 14-Sep-2020 - Thomas  - General changes to code structure to improve legibilty
-- 14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
-- 29-Oct-2020 - Thomas  - combine calibration codes for template sd and fix 
-                          (only requirement for this was common editable var names) 
-- 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
-- 03-Nov-2021 - Thomas  - Included wmFixCue TaskObject in conditions file
+14-Jun-2019 - Thomas  - First implementation
+              Zhivago 
+03-Feb-2020 - Harish  - Added fixation contingency to sample on/off period
+                        Added serial data read and store
+                        Added touching outside hold buttons breaks trial
+10-Aug-2020 - Thomas  - Removed bulk adding of variables to TrialRecord.User
+                      - Simplified general code structure, specifically on errors
+14-Sep-2020 - Thomas  - General changes to code structure to improve legibilty
+14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
+29-Oct-2020 - Thomas  - combine calibration codes for template sd and fix 
+                       (only requirement for this was common editable var names) 
+31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer
+03-Nov-2021 - Thomas  - Included wmFixCue TaskObject in conditions file
+              Georgin
 %}
 
 % HEADER start ---------------------------------------------------------------------------
@@ -63,6 +65,9 @@ rew = TrialRecord.User.rew;
 exp = TrialRecord.User.exp;
 trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
+
+% NUMBER of TaskObjects
+nTaskObjects  = length(TaskObject);
 
 % POINTERS to TaskObjects
 photodiodeCue = 1; 
@@ -227,15 +232,16 @@ else
     idle(badPause);
 end
 
-% TURN photodiode (and all visible stims) state to off at end of trial
-toggleobject(1:7, 'status', 'off');
-
 % TRIAL end
 eventmarker(trl.stop);
 TrialRecord.User.TrialStop(trialNum,:) = datevec(now);
 
 % SEND check odd lines
 eventmarker(chk.linesOdd);
+
+% TURN photodiode (and all stims) state to off at end of trial. Basically, all other
+% items will be off by now. This line is to clear photodiode explicitely.
+toggleobject(1:nTaskObjects, 'status', 'off');
 
 % TRIAL end ------------------------------------------------------------------------------ 
 % FOOTER start --------------------------------------------------------------------------- 
@@ -262,13 +268,19 @@ cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
 cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
 cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
 
-% CONVERT calLocs values for sending through trial footer
-cCalLocs = nan(1,numel(calLocs));
-count    = 0;
+% PREPARE stim info - sets of stim ID, stimPosX and stimPosY to transmit
+cCalIDLocs = nan(1,(size(calLocs,1) + numel(calLocs)));
+count      = 1;
+
 for calLocsR = 1:size(calLocs,1)
+    % ADD nan as stim ID
+    cCalIDLocs(count) = exp.nan;
+    count             = count + 1;
+    
+    % ADD stim X Y positions
     for calLocsC =1:size(calLocs,2)
-        count = count+1;
-        cCalLocs(count) = trl.picPosShift + calLocs(calLocsR,calLocsC)*1000;
+        cCalIDLocs(count) = trl.picPosShift + calLocs(calLocsR,calLocsC)*1000;
+        count             = count + 1;
     end
 end
 
@@ -296,7 +308,7 @@ eventmarker(trl.edtStop);
 eventmarker(trl.stimStart);
 
 % SEND calib point locations
-eventmarker(cCalLocs);
+eventmarker(cCalIDLocs);
 
 % STIM INFO start marker
 eventmarker(trl.stimStop);

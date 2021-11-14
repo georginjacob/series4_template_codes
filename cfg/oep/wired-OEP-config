@@ -4,9 +4,9 @@
   <INFO>
     <VERSION>0.4.4</VERSION>
     <PLUGIN_API_VERSION>5</PLUGIN_API_VERSION>
-    <DATE>22 Oct 2020 23:57:16</DATE>
+    <DATE>5 Nov 2021 18:26:47</DATE>
     <OS>Windows 7</OS>
-    <MACHINE>ADMIN-PC</MACHINE>
+    <MACHINE>VISIONLABWM-PC</MACHINE>
   </INFO>
   <SIGNALCHAIN>
     <PROCESSOR name="Sources/eCube Server" insertionPoint="1" pluginName="eCube Server"
@@ -278,7 +278,7 @@
     </PROCESSOR>
     <PROCESSOR name="Sinks/LFP Viewer" insertionPoint="1" pluginName="LFP Viewer"
                pluginType="1" pluginIndex="8" libraryName="LFP viewer" libraryVersion="1"
-               isSource="0" isSink="1" NodeId="102">
+               isSource="0" isSink="1" NodeId="101">
       <CHANNEL name="0" number="0">
         <SELECTIONSTATE param="1" record="0" audio="0"/>
       </CHANNEL>
@@ -472,10 +472,10 @@
         <SELECTIONSTATE param="1" record="0" audio="0"/>
       </CHANNEL>
       <EVENTCHANNEL name="0" number="0"/>
-      <EDITOR isCollapsed="0" displayName="Digital" Type="LfpDisplayEditor">
+      <EDITOR isCollapsed="0" displayName="LFP Viewer" Type="LfpDisplayEditor">
         <TAB Active="1"/>
         <WINDOW Active="0"/>
-        <LFPDISPLAY Range="250,2000,10.0" Timebase="10.0" Spread="40" colorGrouping="1"
+        <LFPDISPLAY Range="5000,2000,10.0" Timebase="5.0" Spread="30" colorGrouping="1"
                     isInverted="0" drawMethod="0" EventButtonState="255" ChannelDisplayState="1111111111111111111111111111111111111111111111111111111111111111"
                     ScrollX="0" ScrollY="0"/>
         <VALUES SubprocessorId="0"/>
@@ -485,7 +485,7 @@
   <SIGNALCHAIN>
     <PROCESSOR name="Sources/eCube Server" insertionPoint="1" pluginName="eCube Server"
                pluginType="4" pluginIndex="0" libraryName="White Matter eCube Server Source"
-               libraryVersion="1" isSource="1" isSink="0" NodeId="101">
+               libraryVersion="1" isSource="1" isSink="0" NodeId="102">
       <CHANNEL_INFO>
         <CHANNEL name="PAI0" number="0" gain="0.00030517578125"/>
         <CHANNEL name="PAI1" number="1" gain="0.00030517578125"/>
@@ -530,7 +530,7 @@
         <SELECTIONSTATE param="1" record="1" audio="0"/>
       </CHANNEL>
       <CHANNEL name="3" number="3">
-        <SELECTIONSTATE param="0" record="0" audio="0"/>
+        <SELECTIONSTATE param="1" record="1" audio="0"/>
       </CHANNEL>
       <CHANNEL name="4" number="4">
         <SELECTIONSTATE param="0" record="0" audio="0"/>
@@ -720,11 +720,11 @@
       <CHANNEL name="31" number="31">
         <SELECTIONSTATE param="1" record="0" audio="0"/>
       </CHANNEL>
-      <EDITOR isCollapsed="0" displayName="ANALOG" Type="LfpDisplayEditor">
+      <EDITOR isCollapsed="0" displayName="LFP Viewer" Type="LfpDisplayEditor">
         <TAB Active="1"/>
         <WINDOW Active="0"/>
-        <LFPDISPLAY Range="250,2000,10.0" Timebase="20.0" Spread="40" colorGrouping="1"
-                    isInverted="0" drawMethod="0" EventButtonState="63" ChannelDisplayState="11111111111111111111111111111111"
+        <LFPDISPLAY Range="250,2000,10.0" Timebase="5.0" Spread="40" colorGrouping="1"
+                    isInverted="0" drawMethod="0" EventButtonState="255" ChannelDisplayState="11111111111111111111111111111111"
                     ScrollX="0" ScrollY="0"/>
         <VALUES SubprocessorId="0"/>
       </EDITOR>
@@ -732,8 +732,8 @@
   </SIGNALCHAIN>
   <AUDIO bufferSize="1024"/>
   <GLOBAL_TIMESTAMP selected_index="0" selected_sub_index="0"/>
-  <CONTROLPANEL isOpen="1" recordPath="D:\series4\software\whitematterpc\current_software\OpenEphys-v0.4.4-SNv0.2.3"
-                prependText="" appendText="" recordEngine="ECUBEREMOTE"/>
+  <CONTROLPANEL isOpen="1" recordPath="D:\data" prependText="didi" appendText=""
+                recordEngine="ECUBEREMOTE"/>
   <AUDIOEDITOR isMuted="0" volume="0" noiseGate="0"/>
   <RECORDENGINES>
     <ENGINE id="OPENEPHYS" name="Open Ephys">
@@ -745,7 +745,7 @@
       <PARAMETER id="0" type="bool" value="1"/>
     </ENGINE>
     <ENGINE id="ECUBEREMOTE" name="On ServerNode">
-      <PARAMETER id="0" type="multi" value="0"/>
+      <PARAMETER id="0" type="multi" value="2"/>
     </ENGINE>
     <ENGINE id="KWIK" name="Kwik"/>
     <ENGINE id="NWB" name="NWB">

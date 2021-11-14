@@ -1,20 +1,22 @@
 % FIXATION TRIAL for Monkeylogic - Vision Lab, IISc
+% ----------------------------------------------------------------------------------------
+% Presents a series of images at center where animal has to fixate while pressing the hold
+% button. Breaking of fixation/hold or touch outside of hold button will abort the trial.
+% 
+% VERSION HISTORY
 %{
-Presents a series of images at center where animal has to fixate while pressing the hold
-button. Breaking of fixation/hold or touch outside of hold button will abort the trial.
-
-VERSION HISTORY
-- 02-Sep-2020 - Thomas  - First implementation
-- 14-Sep-2020 - Thomas  - Updated codes with new implementation of event and error
-                          codes. Simplified code structure and other changes.
-- 14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
-- 29-Oct-2020 - Thomas  - Updated to match the version of templateSD
-- 31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer and
-                          accomodated code for delayPeriod of 0
-- 03-Nov-2021 - Thomas  - Updated to deal with wmFixCue
-- 05-Nov-2021 - Thomas  - wmFixCue renamed to generalized stimFixFlag, option to show fix
-                          throughout trial introduced.
+02-Sep-2020 - Thomas  - First implementation
+14-Sep-2020 - Thomas  - Updated codes with new implementation of event and error
+                        codes. Simplified code structure and other changes.
+14-Oct-2020 - Thomas  - Updated all eyejoytrack to absolute time and not rt
+29-Oct-2020 - Thomas  - Updated to match the version of templateSD
+31-Dec-2020 - Thomas  - Updated editable names and implemented holdRadiusBuffer and
+                        accomodated code for stimOffPeriod of 0
+03-Nov-2021 - Thomas  - Updated to deal with wmFixCue
+05-Nov-2021 - Thomas  - wmFixCue renamed to generalized stimFixFlag, option to show fix
+              Georgin   throughout trial introduced.
 %}
+
 % HEADER start ---------------------------------------------------------------------------
 
 % CHECK if touch and eyesignal are present to continue------------------------------------
@@ -50,8 +52,8 @@ fixInitPeriod    = Info.fixInitPeriod;
 fixHoldPeriod    = 300;
 holdRadius       = TrialData.TaskObject.Attribute{1, 2}{1, 2};
 holdRadiusBuffer = 2;
-samplePeriod     = Info.samplePeriod;
-delayPeriod      = Info.delayPeriod;
+stimOnPeriod     = Info.stimOnPeriod;
+stimOffPeriod    = Info.stimOffPeriod;
 reward           = ml_rewardVol2Time(rewardVol);
 
 % ASSIGN event codes from TrialRecord.User
@@ -65,7 +67,7 @@ trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
 
 % NUMBER of TaskObjects
-nTaskObjects  = 17;
+nTaskObjects  = length(TaskObject);
 
 % POINTERS to TaskObjects
 photodiodeCue = 1;  holdButton = 2;  initFixCue = 3;  stimFixCue = 4;
@@ -98,8 +100,8 @@ tTrialInit    = NaN;
 tFixCueOn     = NaN(Info.imgPerTrial+1, 1);
 tFixAcq       = NaN;
 tFixCueOff    = NaN(Info.imgPerTrial+1, 1);
-tSampleOn     = NaN(Info.imgPerTrial, 1);
-tSampleOff    = NaN(Info.imgPerTrial, 1);
+tStimOn       = NaN(Info.imgPerTrial, 1);
+tStimOff      = NaN(Info.imgPerTrial, 1);
 tAllOff       = NaN;
 juiceConsumed = NaN;
 
@@ -197,38 +199,38 @@ while outcome < 0
         eventmarker([bhv.holdMaint bhv.fixMaint]);
     end
     
-    % LOOP for presenting stim - here init fix cue is removed and delayFixCue is kept on
-    % till end of trials. The dynamics of visibility of delayFixCue are determined by
+    % LOOP for presenting stim - here initFixCue is removed and stimFixCue is kept on
+    % till end of trials. The dynamics of visibility of stimFixCue are determined by
     % variables Info.stimFixCueAboveStimFlag and the inherent color of stimFixCue as
     % determined when creating conditions file
     for itemID = 1:Info.imgPerTrial
-        % CHECK if first stim, if not then delayPeriod > 0
+        % CHECK if first stim, if not then stimOffPeriod > 0
         if itemID == 1
             % REMOVE init fixation cue & PRESENT stimFixCue and stimulus
             tFixCueOff(itemID,:) = toggleobject([initFixCue stimFixCue selStim(itemID) photodiodeCue],...
                 'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
-            tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
-            visibleStims         = [holdButton stimFixCue selStim(itemID)];
-        elseif delayPeriod > 0
+            tStimOn(itemID,:)  = tFixCueOff(itemID,:);
+            visibleStims       = [holdButton stimFixCue selStim(itemID)];
+        elseif stimOffPeriod > 0
             % PRESENT stimulus
             tFixCueOff(itemID,:) = toggleobject([selStim(itemID) photodiodeCue],...
                 'eventmarker', [pic.fixOff selEvts(2*itemID)-1]);
-            tSampleOn(itemID,:)  = tFixCueOff(itemID,:);
-            visibleStims         = [holdButton stimFixCue selStim(itemID)];
+            tStimOn(itemID,:)  = tFixCueOff(itemID,:);
+            visibleStims       = [holdButton stimFixCue selStim(itemID)];
         else
             % REMOVE previous stimulus and present current stimulus
-            tSampleOn(itemID,:) = toggleobject([selStim(itemID-1) selStim(itemID) photodiodeCue],...
+            tStimOn(itemID,:) = toggleobject([selStim(itemID-1) selStim(itemID) photodiodeCue],...
                 'eventmarker', [selEvts(2*itemID)-2 selEvts(2*itemID)-1]);
-            tSampleOff(itemID-1,:) = tSampleOn(itemID,:);
+            tStimOff(itemID-1,:) = tStimOn(itemID,:);
             visibleStims         = [holdButton stimFixCue selStim(itemID)];
         end
         
-        % CHECK fixation and hold maintenance for samplePeriod
+        % CHECK fixation and hold maintenance for stimOnPeriod
         ontarget = eyejoytrack(...
             'releasetarget', holdButton, holdRadius,...
             '~touchtarget',  holdButton, holdRadius + holdRadiusBuffer,...
             'holdfix',       stimFixCue, taskFixRadius,...
-            samplePeriod);
+            stimOnPeriod);
         
         if ontarget(1) == 0
             % Error if monkey released hold
@@ -247,20 +249,20 @@ while outcome < 0
             eventmarker([bhv.holdMaint bhv.fixMaint]);
         end
         
-        % CHECK if delayPeriod > 0
-        if delayPeriod > 0
+        % CHECK if stimOffPeriod > 0
+        if stimOffPeriod > 0
             % REMOVE stimulus & PRESENT WM fixation cue
-            tSampleOff(itemID,:)  = toggleobject([selStim(itemID) photodiodeCue],...
+            tStimOff(itemID,:)  = toggleobject([selStim(itemID) photodiodeCue],...
                 'eventmarker', [selEvts(2*itemID)]);
-            tFixCueOn(itemID+1,:) = tSampleOff(itemID,:);
+            tFixCueOn(itemID+1,:) = tStimOff(itemID,:);
             visibleStims          = [holdButton stimFixCue];
             
-            % CHECK fixation and hold maintenance for delayPeriod
+            % CHECK fixation and hold maintenance for stimOffPeriod
             ontarget = eyejoytrack(...
                 'releasetarget',holdButton, holdRadius,...
                 '~touchtarget', holdButton, holdRadius + holdRadiusBuffer,...
                 'holdfix',      stimFixCue,   taskFixRadius,...
-                delayPeriod);
+                stimOffPeriod);
             
             if ontarget(1) == 0
                 % Error if monkey released hold
@@ -285,7 +287,7 @@ while outcome < 0
     % This check is needed as 'break' only breaks the preceding for loop and
     % not the while loop (which checks for outcome < 0)
     if outcome < 0
-        if delayPeriod > 0
+        if stimOffPeriod > 0
             % MARK stimFixCue for removal
             visibleStims = [holdButton stimFixCue];
             event        = [bhv.respCorr pic.holdOff rew.juice];
@@ -302,10 +304,10 @@ end
 trialerror(outcome);
 tAllOff = toggleobject([visibleStims photodiodeCue], 'eventmarker', event);
 if outcome == 0
-    if delayPeriod > 0
+    if stimOffPeriod > 0
         tFixCueOff(itemID+1,:) = tAllOff;
     else
-        tSampleOff(itemID,:) = tAllOff;
+        tStimOff(itemID,:) = tAllOff;
     end
 end
 
@@ -361,7 +363,7 @@ cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
 cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
 cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
 
-% PREPARE stim info to send in footer
+% PREPARE stim info - sets of stim ID, stimPosX and stimPosY to transmit
 cFixID(1)  = trl.shift + Info.fixationImage01ID;
 cFixID(2)  = trl.shift + Info.fixationImage02ID;
 cFixID(3)  = trl.shift + Info.fixationImage03ID;
@@ -429,6 +431,8 @@ TrialRecord.User.fixationImageID(trialNum,9)  = Info.fixationImage09ID;
 TrialRecord.User.fixationImageID(trialNum,10) = Info.fixationImage10ID;
 TrialRecord.User.imgPerTrial(trialNum)        = Info.imgPerTrial;
 TrialRecord.User.trialFlag(trialNum)          = Info.trialFlag;
+TrialRecord.User.expectedResponse(trialNum)   = NaN;
+TrialRecord.User.chosenResponse(trialNum)     = NaN;
 TrialRecord.User.responseCorrect(trialNum)    = outcome;
 TrialRecord.User.juiceConsumed(trialNum)      = juiceConsumed;
 
@@ -437,7 +441,7 @@ bhv_variable(...
     'juiceConsumed', juiceConsumed, 'tHoldButtonOn', tHoldButtonOn,...
     'tTrialInit',    tTrialInit,    'tFixCueOn',     tFixCueOn,...
     'tFixAcq',       tFixAcq,       'tFixCueOff',    tFixCueOff,...
-    'tSampleOn',     tSampleOn,     'tSampleOff',    tSampleOff,...
+    'tStimOn',       tStimOn,       'tStimOff',      tStimOff,...
     'tAllOff',       tAllOff);
 
 % FOOTER end------------------------------------------------------------------------------

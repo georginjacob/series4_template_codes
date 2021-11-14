@@ -4,8 +4,9 @@
 % on the right side (from subjects' POV) as responses:
 %   - Top button for 'same/absent' response, and
 %   - Bottom button for 'diff/present' response.
+%
+% VERSION HISTORY
 %{
-VERSION HISTORY
 06-Feb-2021 - Thomas  - First implementation
 07-Nov-2021 - Thomas  - Included stimFixCue TaskObject in conditions file and task,
                         option to show fix, throughout trial introduced.
@@ -61,7 +62,7 @@ trl = TrialRecord.User.trl;
 chk = TrialRecord.User.chk;
 
 % NUMBER of TaskObjects
-nTaskObjects  = 17;
+nTaskObjects  = length(TaskObject);
 
 % POINTERS to TaskObjects
 photodiodeCue = 1; 
@@ -362,7 +363,7 @@ cCalFixInitPeriod = trl.shift + TrialRecord.Editable.calFixInitPeriod;
 cCalFixHoldPeriod = trl.shift + TrialRecord.Editable.calFixHoldPeriod;
 cRewardVol        = trl.shift + TrialRecord.Editable.rewardVol*1000;
 
-% PREPARE stim info to send in footer
+% PREPARE stim info - sets of stim ID, stimPosX and stimPosY to transmit
 cTargetID     = trl.shift + Info.targetImageID;
 cTargetX      = trl.picPosShift + TaskObject.Position(searchArray(1),1)*1000;
 cTargetY      = trl.picPosShift + TaskObject.Position(searchArray(1),2)*1000;

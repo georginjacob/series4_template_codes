@@ -15,7 +15,7 @@
 %{
 14-Oct-2020 - Thomas  - First version
 08-Nov-2021 - Thomas  - Added clearing of iScan serialport object in
-                        task_aborted hook
+                        task_aborted hook, throw error is raster threshold not 0
 %}
 % ----------------------------------------------------------------------------------------
 
@@ -25,7 +25,7 @@ function alert_function(hook,MLConfig,TrialRecord)
 % time it starts.
 addpath('C:\Program Files\MATLAB\R2020b\toolbox\matlab\serialport')
 
-% GLOBAL variables
+% GLOBAL variable
 global iScan timeStamp apitoken
 
 switch hook
@@ -35,8 +35,8 @@ switch hook
         % INITIALIZE the experiment and set flags in TrialRecord
         TrialRecord = ml_initExp(TrialRecord, MLConfig);
         
-        if TrialRecord.User.mlPcFlag
-            % OPEN serial port to read and save IScan ASCII serial data at 120Hz
+        % OPEN serial port to read and save IScan ASCII serial data at 120Hz (on MLPC)
+        if TrialRecord.User.mlPcFlag            
             iScan = serialport('COM1', 115200);
             configureTerminator(iScan,10);
             
@@ -51,16 +51,16 @@ switch hook
             disp('[UPDATE] - opened serialport session');
         end
         
+        % SEND header to eCube if MLPC
         if TrialRecord.User.sendHeaderFlag
-            % SEND header to eCube if MLPC
             disp('[UPDATE] - sending header to eCube');
             ml_sendHeader(MLConfig);
             disp('[UPDATE] - header info sent to eCube');
         end
         
+        % START netCam recordings (requires watchtower server running and
+        % cameras to be manually bound on netcam PC
         if TrialRecord.User.recordNetcamFlag
-            % START netCam recordings (requires watchtower server running and
-            % cameras to be manually bound on netcam PC
             [outcome, apitoken] = ml_startNetcamRecord(MLConfig);
             if outcome
                 disp('[UPDATE] - started netcam recording');
@@ -73,18 +73,30 @@ switch hook
             TrialRecord.User.recordNetcamStartTime = NaN;
         end
         
+        % THROW error if raster threshold not 0
+        if MLConfig.RasterThreshold ~= 0
+            % CLEAR serialport object for IScan at end of experiment
+            if TrialRecord.User.mlPcFlag && exist('iScan','var')
+                configureCallback(iScan, "off");
+                delete(iScan)
+                clear iScan
+                disp('[UPDATE] - cleared serialport session');
+            end
+            error('[ERROR] - raster threshold is not correct!! Please set it to 0 in photodiode tuner!')
+        end
+        
     case 'block_start'
         
     case 'trial_start'
+        % PURGE iScan.UserData at trial start
         if TrialRecord.User.mlPcFlag
-            % PURGE iScan.UserData at trial start
             iScan.UserData = [];
             timeStamp      = [];
         end
         
     case 'trial_end'
-        if TrialRecord.User.mlPcFlag
-            % STORE iScan.UserData at trial end
+        % STORE iScan.UserData at trial end
+        if TrialRecord.User.mlPcFlag            
             serialDataNum = nan(size(iScan.UserData,1),12);
             
             % NOTE: removing this for loop doesn't work for some reason
@@ -100,10 +112,9 @@ switch hook
         
     case 'task_end'
         % When '[q] Quit' is selected in the pause menu or the task stops with an error
-        
+        % STOP netCam recordings (requires watchtower server running and
+        % cameras to be manually bound on netcam PC, recording must be going on)
         if ~isnan(TrialRecord.User.recordNetcamStartTime)
-            % STOP netCam recordings (requires watchtower server running and
-            % cameras to be manually bound on netcam PC, recording must be going on)
             [outcome] = ml_stopNetcamRecord(apitoken);
             if outcome
                 disp('[UPDATE] - stopped netcam recording');

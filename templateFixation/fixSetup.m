@@ -34,7 +34,7 @@ conditionsFileName = 'fixConditions.txt';
 % SELECT if the stimFix cue color - after first stim is flipped to screen is visible or 
 % not. A value of 1 means that the fix cue is same color as the initFix cue i.e. yellow 
 % whereas 0 means the color is black (and on the black background it will be invisible).
-% NOTE: Use in confunction with stimFixCueAboveStimFlag for intendded effect
+% NOTE: Use in confunction with stimFixCueAboveStimFlag for intended effect
 stimFixCueColorFlag = 0; 
 
 % CHOOSE if the stimFix cue with be shown on top of stimulus on the screen on behind them.
@@ -45,16 +45,16 @@ stimFixCueColorFlag = 0;
 stimFixCueAboveStimFlag = 0; % If 1, show fix above stim, else below
 
 %% TIMINGS of the task (all in milliseconds)
-% TIME available to monkey to initiate the trial by pressing the hold button
+% DURATION available for monkey to initiate the trial by pressing the hold button
 holdInitPeriod = 10000;
 
-% TIME available to monkey to acquire fixation after initiating the trial
+% DURATION available for monkey to acquire fixation after initiating the trial
 fixInitPeriod  = 500;
 
-% TIME to show the stimuli for (can't be 0)
+% DURATION to show the stimuli for (can't be 0)
 stimOnPeriod   = 200;
 
-% TIME of ISI for (can be 0)
+% DURATION of ISI for (can be 0)
 stimOffPeriod  = 200;
 
 %% CREATE the conditions/trials and related variables
@@ -108,7 +108,8 @@ frequency       = ones(nTrials,1);
 trialFlag       = ones(nTrials,1);
 
 %% PREPARE the Info fields for each trial 
-% INFO fields
+% DO NOT remove any field as they are required in the timing field!!! These
+% are just pairs of string that can be formatted easily with eval
 infoFields =  {
     '''imgPerTrial'',',             'imgPerTrial'
     '''fixationImage01ID'',',       'imgList(trialID,1)'
@@ -140,14 +141,17 @@ infoFields =  {
     '''stimFixCueAboveStimFlag'',', 'stimFixCueAboveStimFlag'
     };
 
-% TRIAL info
+% PREPARE Info that will be added to each condition in conditions file and is utilized in
+% the timing file
 for trialID = 1:size(imgList,1)
    tempVar = [];
     
+   % FORMAT each info variable
     for stringID   = 1:length(infoFields)
         value      = eval(char(infoFields(stringID,2)));
         stringVal  = char(infoFields(stringID,1));        
         
+        % CHECK if Info item is number or not (some are strings, like stim file names)
         if isnumeric(value)
             if stringID == length(infoFields)
                 tempVar = [tempVar stringVal sprintf('%03d',value)];
@@ -163,8 +167,10 @@ for trialID = 1:size(imgList,1)
         end
     end
     
+    % ADD to info for current trial
     info{trialID} = tempVar;
 end
 
-% CREATE conditions file
-ml_makeConditionsFix(timingFileName, conditionsFileName, fixNames, info, frequency, block, stimFixCueColorFlag)
+%% CREATE conditions file
+ml_makeConditionsFix(timingFileName, conditionsFileName, fixNames,...
+    info, frequency, block, stimFixCueColorFlag)
